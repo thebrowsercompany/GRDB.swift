@@ -1,5 +1,7 @@
 #if canImport(Combine)
 import Combine
+#elseif canImport(OpenCombine)
+import OpenCombine
 #endif
 import Foundation
 
@@ -52,7 +54,7 @@ public struct DatabaseMigrator {
         /// In this case, you can perform your own deferred foreign key checks
         /// with ``Database/checkForeignKeys(in:in:)`` or
         /// ``Database/checkForeignKeys()``:
-        /// 
+        ///
         /// ```swift
         /// migrator = migrator.disablingDeferredForeignKeyChecks()
         /// migrator.registerMigration("Partially checked migration") { db in
@@ -64,7 +66,7 @@ public struct DatabaseMigrator {
         /// }
         /// ```
         case deferred
-        
+
         /// The migration runs with enabled foreign keys.
         ///
         /// Immediate foreign key checks are NOT compatible with migrations that
@@ -72,7 +74,7 @@ public struct DatabaseMigrator {
         /// in <doc:Migrations#Defining-the-Database-Schema-from-a-Migration>.
         case immediate
     }
-    
+
     /// A boolean value indicating whether the migrator recreates the whole
     /// database from scratch if it detects a change in the definition
     /// of migrations.
@@ -105,13 +107,13 @@ public struct DatabaseMigrator {
     public var eraseDatabaseOnSchemaChange = false
     private var defersForeignKeyChecks = true
     private var _migrations: [Migration] = []
-    
+
     /// A new migrator.
     public init() {
     }
-    
+
     // MARK: - Disabling Foreign Key Checks
-    
+
     /// Returns a migrator that disables foreign key checks in all newly
     /// registered migrations.
     ///
@@ -150,9 +152,9 @@ public struct DatabaseMigrator {
     public func disablingDeferredForeignKeyChecks() -> DatabaseMigrator {
         with { $0.defersForeignKeyChecks = false }
     }
-    
+
     // MARK: - Registering Migrations
-    
+
     /// Registers a migration.
     ///
     /// The registered migration is appended to the list of migrations to run:
@@ -222,9 +224,9 @@ public struct DatabaseMigrator {
         }
         registerMigration(Migration(identifier: identifier, foreignKeyChecks: migrationChecks, migrate: migrate))
     }
-    
+
     // MARK: - Applying Migrations
-    
+
     /// Runs all unapplied migrations, in the same order as they
     /// were registered.
     ///
@@ -236,7 +238,7 @@ public struct DatabaseMigrator {
         }
         try migrate(writer, upTo: lastMigration.identifier)
     }
-    
+
     /// Runs all unapplied migrations, in the same order as they
     /// were registered, up to the target migration identifier (included).
     ///
@@ -254,7 +256,7 @@ public struct DatabaseMigrator {
             try migrate(db, upTo: targetIdentifier)
         }
     }
-    
+
     /// Schedules unapplied migrations for execution, and returns immediately.
     ///
     /// - parameter writer: A DatabaseWriter.
@@ -278,15 +280,15 @@ public struct DatabaseMigrator {
             }
         }
     }
-    
+
     // MARK: - Querying Migrations
-    
+
     /// The list of registered migration identifiers, in the same order as they
     /// have been registered.
     public var migrations: [String] {
         _migrations.map(\.identifier)
     }
-    
+
     /// Returns the identifiers of registered and applied migrations, in the
     /// order of registration.
     ///
@@ -296,7 +298,7 @@ public struct DatabaseMigrator {
         let appliedIdentifiers = try self.appliedIdentifiers(db)
         return _migrations.map { $0.identifier }.filter { appliedIdentifiers.contains($0) }
     }
-    
+
     /// Returns the applied migration identifiers, even unregistered ones.
     ///
     /// - parameter db: A database connection.
@@ -312,7 +314,7 @@ public struct DatabaseMigrator {
             throw error
         }
     }
-    
+
     /// Returns the identifiers of registered and completed migrations, in the
     /// order of registration.
     ///
@@ -328,7 +330,7 @@ public struct DatabaseMigrator {
             .prefix(while: { (applied: String, known: String) in applied == known })
             .map { $0.0 }
     }
-    
+
     /// A boolean value indicating whether all registered migrations, and only
     /// registered migrations, have been applied.
     ///
@@ -337,7 +339,7 @@ public struct DatabaseMigrator {
     public func hasCompletedMigrations(_ db: Database) throws -> Bool {
         try completedMigrations(db).last == _migrations.last?.identifier
     }
-    
+
     /// A boolean value indicating whether the database refers to
     /// unregistered migrations.
     ///
@@ -351,16 +353,16 @@ public struct DatabaseMigrator {
         let knownIdentifiers = _migrations.map(\.identifier)
         return appliedIdentifiers.contains { !knownIdentifiers.contains($0) }
     }
-    
+
     // MARK: - Non public
-    
+
     private mutating func registerMigration(_ migration: Migration) {
         GRDBPrecondition(
             !_migrations.map({ $0.identifier }).contains(migration.identifier),
             "already registered migration: \(String(reflecting: migration.identifier))")
         _migrations.append(migration)
     }
-    
+
     /// Returns unapplied migration identifier,
     private func unappliedMigrations(upTo targetIdentifier: String, appliedIdentifiers: [String]) -> [Migration] {
         var expectedMigrations: [Migration] = []
@@ -370,19 +372,19 @@ public struct DatabaseMigrator {
                 break
             }
         }
-        
+
         // targetIdentifier must refer to a registered migration
         GRDBPrecondition(
             expectedMigrations.last?.identifier == targetIdentifier,
             "undefined migration: \(String(reflecting: targetIdentifier))")
-        
+
         return expectedMigrations.filter { !appliedIdentifiers.contains($0.identifier) }
     }
-    
+
     private func runMigrations(_ db: Database, upTo targetIdentifier: String) throws {
         try db.execute(sql: "CREATE TABLE IF NOT EXISTS grdb_migrations (identifier TEXT NOT NULL PRIMARY KEY)")
         let appliedIdentifiers = try self.appliedMigrations(db)
-        
+
         // Subsequent migration must not be applied
         if let targetIndex = _migrations.firstIndex(where: { $0.identifier == targetIdentifier }),
            let lastAppliedIdentifier = appliedIdentifiers.last,
@@ -391,20 +393,20 @@ public struct DatabaseMigrator {
         {
             fatalError("database is already migrated beyond migration \(String(reflecting: targetIdentifier))")
         }
-        
+
         let unappliedMigrations = self.unappliedMigrations(
             upTo: targetIdentifier,
             appliedIdentifiers: appliedIdentifiers)
-        
+
         if unappliedMigrations.isEmpty {
             return
         }
-        
+
         for migration in unappliedMigrations {
             try migration.run(db)
         }
     }
-    
+
     private func migrate(_ db: Database, upTo targetIdentifier: String) throws {
         if eraseDatabaseOnSchemaChange {
             var needsErase = false
@@ -416,7 +418,7 @@ public struct DatabaseMigrator {
                     needsErase = true
                     return .commit
                 }
-                
+
                 if let lastAppliedIdentifier = _migrations
                     .map(\.identifier)
                     .last(where: { appliedIdentifiers.contains($0) })
@@ -433,7 +435,7 @@ public struct DatabaseMigrator {
                         tmpConfig.targetQueue = nil // Avoid deadlocks
                         tmpConfig.writeTargetQueue = nil // Avoid deadlocks
                         tmpConfig.label = "GRDB.DatabaseMigrator.temporary"
-                        
+
                         // Create the temporary database on disk, just in
                         // case migrations would involve a lot of data.
                         //
@@ -456,7 +458,7 @@ public struct DatabaseMigrator {
                             return try db.schema(.main)
                         }
                     }()
-                    
+
                     // Only compare user objects
                     func isUserObject(_ object: SchemaObject) -> Bool {
                         !Database.isSQLiteInternalTable(object.name) && !Database.isGRDBInternalTable(object.name)
@@ -468,15 +470,15 @@ public struct DatabaseMigrator {
                         return .commit
                     }
                 }
-                
+
                 return .commit
             }
-            
+
             if needsErase {
                 try db.erase()
             }
         }
-        
+
         // Migrate to target schema
         try runMigrations(db, upTo: targetIdentifier)
     }
@@ -487,7 +489,7 @@ extension DatabaseMigrator: Refinable { }
 #if canImport(Combine)
 extension DatabaseMigrator {
     // MARK: - Publishing Migrations
-    
+
     /// Returns a Publisher that asynchronously migrates a database.
     ///
     /// The database is not accessed until subscription. Value and completion
@@ -524,9 +526,9 @@ extension DatabasePublishers {
     public struct Migrate: Publisher {
         public typealias Output = Void
         public typealias Failure = Error
-        
+
         fileprivate let upstream: AnyPublisher<Void, Error>
-        
+
         public func receive<S>(subscriber: S) where S: Subscriber, Self.Failure == S.Failure, Self.Output == S.Input {
             upstream.receive(subscriber: subscriber)
         }

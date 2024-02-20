@@ -1,12 +1,14 @@
 #if canImport(Combine)
 import Combine
+#elseif canImport(OpenCombine)
+import OpenCombine
 #endif
 import Dispatch
 import Foundation
 
 public struct ValueObservation<Reducer: _ValueReducer> {
     var events = ValueObservationEvents()
-    
+
     /// A boolean value indicating whether the observation requires write access
     /// when it fetches fresh values.
     ///
@@ -25,13 +27,13 @@ public struct ValueObservation<Reducer: _ValueReducer> {
     /// Setting the `requiresWriteAccess` flag can disable scheduling
     /// optimizations when the observation is started in a ``DatabasePool``.
     public var requiresWriteAccess = false
-    
+
     var trackingMode: ValueObservationTrackingMode
-    
+
     /// The reducer is created when observation starts, and is triggered upon
     /// each database change.
     var makeReducer: () -> Reducer
-    
+
     /// Returns a ValueObservation with a transformed reducer.
     func mapReducer<R>(_ transform: @escaping (Reducer) -> R) -> ValueObservation<R> {
         let makeReducer = self.makeReducer
@@ -52,7 +54,7 @@ enum ValueObservationTrackingMode {
     ///     // Tracked Region is always the full player table
     ///     ValueObservation.trackingConstantRegion(Player.all()) { db in ... }
     case constantRegion([any DatabaseRegionConvertible])
-    
+
     /// The tracked region is constant and inferred from the fetched values.
     ///
     /// Use case:
@@ -60,7 +62,7 @@ enum ValueObservationTrackingMode {
     ///     // Tracked Region is always the full player table
     ///     ValueObservation.trackingConstantRegion { db in Player.fetchAll(db) }
     case constantRegionRecordedFromSelection
-    
+
     /// The tracked region is not constant, and inferred from the fetched values.
     ///
     /// Use case:
@@ -87,9 +89,9 @@ typealias ValueObservationStart<T> = (
 -> AnyDatabaseCancellable
 
 extension ValueObservation: Refinable {
-    
+
     // MARK: - Starting Observation
-    
+
     /// Starts observing the database.
     ///
     /// The observation lasts until the returned cancellable is cancelled
@@ -152,9 +154,9 @@ extension ValueObservation: Refinable {
             scheduling: scheduler,
             onChange: onChange)
     }
-    
+
     // MARK: - Debugging
-    
+
     /// Performs the specified closures when observation events occur.
     ///
     /// All closures run on unspecified dispatch queues: don't make
@@ -203,7 +205,7 @@ extension ValueObservation: Refinable {
                 $0.events.didCancel = concat($0.events.didCancel, didCancel)
             }
     }
-    
+
     /// Prints log messages for all observation events.
     ///
     /// For example:
@@ -260,9 +262,9 @@ extension ValueObservation: Refinable {
                 lock.lock(); defer { lock.unlock() }
                 stream.write("\(prefix)cancel") })
     }
-    
+
     // MARK: - Fetching Values
-    
+
     /// Fetches the initial value.
     func fetchInitialValue(_ db: Database) throws -> Reducer.Value
     where Reducer: ValueReducer
@@ -336,10 +338,10 @@ extension ValueObservation {
 public struct AsyncValueObservation<Element>: AsyncSequence {
     public typealias BufferingPolicy = AsyncThrowingStream<Element, Error>.Continuation.BufferingPolicy
     public typealias AsyncIterator = Iterator
-    
+
     var bufferingPolicy: BufferingPolicy
     var start: ValueObservationStart<Element>
-    
+
     public func makeAsyncIterator() -> Iterator {
         // This cancellable will be retained by the Iterator, which itself will
         // be retained by the Swift async runtime.
@@ -365,7 +367,7 @@ public struct AsyncValueObservation<Element>: AsyncSequence {
                 cancellable?.cancel()
             }
         }
-        
+
         let iterator = stream.makeAsyncIterator()
         if let cancellable {
             return Iterator(
@@ -376,11 +378,11 @@ public struct AsyncValueObservation<Element>: AsyncSequence {
             fatalError("Expected AsyncThrowingStream to have started the observation already")
         }
     }
-    
+
     public struct Iterator: AsyncIteratorProtocol {
         var iterator: AsyncThrowingStream<Element, Error>.AsyncIterator
         let cancellable: AnyDatabaseCancellable
-        
+
         public mutating func next() async throws -> Element? {
             try await iterator.next()
         }
@@ -390,7 +392,7 @@ public struct AsyncValueObservation<Element>: AsyncSequence {
 #if canImport(Combine)
 extension ValueObservation {
     // MARK: - Publishing Observed Values
-    
+
     /// Returns a publisher of observed values.
     ///
     /// For example:
@@ -460,11 +462,11 @@ extension DatabasePublishers {
     public struct Value<Output>: Publisher {
         public typealias Failure = Error
         private let start: ValueObservationStart<Output>
-        
+
         init(start: @escaping ValueObservationStart<Output>) {
             self.start = start
         }
-        
+
         public func receive<S>(subscriber: S) where S: Subscriber, Failure == S.Failure, Output == S.Input {
             let subscription = ValueSubscription(
                 start: start,
@@ -472,7 +474,7 @@ extension DatabasePublishers {
             subscriber.receive(subscription: subscription)
         }
     }
-    
+
     private class ValueSubscription<Downstream: Subscriber>: Subscription
     where Downstream.Failure == Error
     {
@@ -480,30 +482,30 @@ extension DatabasePublishers {
             let downstream: Downstream
             let start: ValueObservationStart<Downstream.Input>
         }
-        
+
         private struct Observing {
             let downstream: Downstream
             var remainingDemand: Subscribers.Demand
         }
-        
+
         private enum State {
             /// Waiting for demand, not observing the database.
             case waitingForDemand(WaitingForDemand)
-            
+
             /// Observing the database. Self.observer is not nil.
             case observing(Observing)
-            
+
             /// Completed or cancelled, not observing the database.
             case finished
         }
-        
+
         // Cancellable is not stored in self.state because we must enter the
         // .observing state *before* the observation starts, so that the user
         // can change the state even before the cancellable is known.
         private var cancellable: AnyDatabaseCancellable?
         private var state: State
         private var lock = NSRecursiveLock() // Allow re-entrancy
-        
+
         init(
             start: @escaping ValueObservationStart<Downstream.Input>,
             downstream: Downstream)
@@ -512,7 +514,7 @@ extension DatabasePublishers {
                 downstream: downstream,
                 start: start))
         }
-        
+
         func request(_ demand: Subscribers.Demand) {
             lock.synchronized {
                 switch state {
@@ -526,7 +528,7 @@ extension DatabasePublishers {
                     let cancellable = info.start(
                         { [weak self] error in self?.receiveCompletion(.failure(error)) },
                         { [weak self] value in self?.receive(value) })
-                    
+
                     // State may have been altered (error or cancellation)
                     switch state {
                     case .waitingForDemand:
@@ -536,17 +538,17 @@ extension DatabasePublishers {
                     case .finished:
                         cancellable.cancel()
                     }
-                    
+
                 case var .observing(info):
                     info.remainingDemand += demand
                     state = .observing(info)
-                    
+
                 case .finished:
                     break
                 }
             }
         }
-        
+
         func cancel() {
             lock.synchronized { sideEffect in
                 let cancellable = self.cancellable
@@ -557,7 +559,7 @@ extension DatabasePublishers {
                 }
             }
         }
-        
+
         private func receive(_ value: Downstream.Input) {
             lock.synchronized {
                 if case let .observing(info) = state,
@@ -572,7 +574,7 @@ extension DatabasePublishers {
                 }
             }
         }
-        
+
         private func receiveCompletion(_ completion: Subscribers.Completion<Error>) {
             lock.synchronized { sideEffect in
                 if case let .observing(info) = state {
@@ -589,9 +591,9 @@ extension DatabasePublishers {
 #endif
 
 extension ValueObservation {
-    
+
     // MARK: - Creating ValueObservation
-    
+
     /// Creates an optimized `ValueObservation` that notifies the fetched value
     /// whenever it changes.
     ///
@@ -738,7 +740,7 @@ extension ValueObservation {
             trackingMode: .constantRegionRecordedFromSelection,
             makeReducer: { ValueReducers.Fetch(fetch: fetch) })
     }
-    
+
     /// Creates a `ValueObservation` that notifies the fetched value whenever
     /// the provided regions are modified.
     ///
@@ -810,7 +812,7 @@ extension ValueObservation {
     {
         tracking(regions: [region] + otherRegions, fetch: fetch)
     }
-    
+
     /// Creates a `ValueObservation` that notifies the fetched value whenever
     /// the provided regions are modified.
     ///
@@ -881,7 +883,7 @@ extension ValueObservation {
             trackingMode: .constantRegion(regions),
             makeReducer: { ValueReducers.Fetch(fetch: fetch) })
     }
-    
+
     /// Creates a `ValueObservation` that notifies the fetched values whenever
     /// it changes.
     ///

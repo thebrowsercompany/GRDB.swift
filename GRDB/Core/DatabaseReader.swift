@@ -1,5 +1,7 @@
 #if canImport(Combine)
 import Combine
+#elseif canImport(OpenCombine)
+import OpenCombine
 #endif
 import Dispatch
 
@@ -53,16 +55,16 @@ import Dispatch
 ///
 /// - ``AnyDatabaseReader``
 public protocol DatabaseReader: AnyObject, Sendable {
-    
+
     /// The database configuration.
     var configuration: Configuration { get }
-    
+
     /// The path to the database file.
     ///
     /// In-memory databases also have a path:
     /// see [In-Memory Databases](https://www.sqlite.org/inmemorydb.html).
     var path: String { get }
-    
+
     /// Closes the database connection.
     ///
     /// - note: You do not have to call this method, and you should not call
@@ -86,9 +88,9 @@ public protocol DatabaseReader: AnyObject, Sendable {
     ///
     /// - throws: A ``DatabaseError`` whenever an SQLite error occurs.
     func close() throws
-    
+
     // MARK: - Interrupting Database Operations
-    
+
     /// Causes any pending database operation to abort and return at its
     /// earliest opportunity.
     ///
@@ -153,9 +155,9 @@ public protocol DatabaseReader: AnyObject, Sendable {
     /// Both `SQLITE_ABORT` and `SQLITE_INTERRUPT` errors can be checked with the
     /// ``DatabaseError/isInterruptionError`` property.
     func interrupt()
-    
+
     // MARK: - Read From Database
-    
+
     /// Executes read-only database operations, and returns their result after
     /// they have finished executing.
     ///
@@ -187,7 +189,7 @@ public protocol DatabaseReader: AnyObject, Sendable {
     ///   would happen while establishing the database access.
     @_disfavoredOverload // SR-15150 Async overloading in protocol implementation fails
     func read<T>(_ value: (Database) throws -> T) throws -> T
-    
+
     /// Schedules read-only database operations for execution, and
     /// returns immediately.
     ///
@@ -215,7 +217,7 @@ public protocol DatabaseReader: AnyObject, Sendable {
     ///   is a `Result` that provides the database connection, or the failure
     ///   that would prevent establishing the read access to the database.
     func asyncRead(_ value: @escaping (Result<Database, Error>) -> Void)
-    
+
     /// Executes database operations, and returns their result after they have
     /// finished executing.
     ///
@@ -253,7 +255,7 @@ public protocol DatabaseReader: AnyObject, Sendable {
     ///   would happen while establishing the database access.
     @_disfavoredOverload // SR-15150 Async overloading in protocol implementation fails
     func unsafeRead<T>(_ value: (Database) throws -> T) throws -> T
-    
+
     /// Schedules database operations for execution, and returns immediately.
     ///
     /// This method is "unsafe" because the database reader does nothing more
@@ -286,7 +288,7 @@ public protocol DatabaseReader: AnyObject, Sendable {
     ///   is a `Result` that provides the database connection, or the failure
     ///   that would prevent establishing the read access to the database.
     func asyncUnsafeRead(_ value: @escaping (Result<Database, Error>) -> Void)
-    
+
     /// Executes database operations, and returns their result after they have
     /// finished executing.
     ///
@@ -329,10 +331,10 @@ public protocol DatabaseReader: AnyObject, Sendable {
     /// - throws: The error thrown by `value`, or any ``DatabaseError`` that
     ///   would happen while establishing the database access.
     func unsafeReentrantRead<T>(_ value: (Database) throws -> T) throws -> T
-    
-    
+
+
     // MARK: - Value Observation
-    
+
     /// Starts a value observation.
     ///
     /// Use the ``ValueObservation/start(in:scheduling:onError:onChange:)``
@@ -348,9 +350,9 @@ public protocol DatabaseReader: AnyObject, Sendable {
 }
 
 extension DatabaseReader {
-    
+
     // MARK: - Backup
-    
+
     /// Copies the database contents into another database.
     ///
     /// The `backup` method blocks the current thread until the destination
@@ -410,7 +412,7 @@ extension DatabaseReader {
                 afterBackupStep: progress)
         }
     }
-    
+
     func backup(
         to destDb: Database,
         pagesPerStep: CInt = -1,
@@ -430,7 +432,7 @@ extension DatabaseReader {
 
 extension DatabaseReader {
     // MARK: - Asynchronous Database Access
-    
+
     /// Executes read-only database operations, and returns their result after
     /// they have finished executing.
     ///
@@ -470,7 +472,7 @@ extension DatabaseReader {
             }
         }
     }
-    
+
     /// Executes database operations, and returns their result after they have
     /// finished executing.
     ///
@@ -521,7 +523,7 @@ extension DatabaseReader {
 #if canImport(Combine)
 extension DatabaseReader {
     // MARK: - Publishing Database Values
-    
+
     /// Returns a publisher that publishes one value and completes.
     ///
     /// The database is not accessed until subscription. Value and completion
@@ -577,9 +579,9 @@ extension DatabasePublishers {
     public struct Read<Output>: Publisher {
         public typealias Output = Output
         public typealias Failure = Error
-        
+
         fileprivate let upstream: AnyPublisher<Output, Error>
-        
+
         public func receive<S>(subscriber: S) where S: Subscriber, Self.Failure == S.Failure, Self.Output == S.Input {
             upstream.receive(subscriber: subscriber)
         }
@@ -596,7 +598,7 @@ extension Publisher where Failure == Error {
 
 extension DatabaseReader {
     // MARK: - Value Observation Support
-    
+
     /// Adding an observation in a read-only database emits only the
     /// initial value.
     func _addReadOnly<Reducer: ValueReducer>(
@@ -623,11 +625,11 @@ extension DatabaseReader {
             var isCancelled = false
             asyncRead { dbResult in
                 guard !isCancelled else { return }
-                
+
                 let result = dbResult.flatMap { db in
                     Result { try observation.fetchInitialValue(db) }
                 }
-                
+
                 scheduler.schedule {
                     guard !isCancelled else { return }
                     do {
@@ -648,7 +650,7 @@ extension DatabaseReader {
 /// base database reader.
 public final class AnyDatabaseReader {
     private let base: any DatabaseReader
-    
+
     /// Creates a new database reader that wraps and forwards operations
     /// to `base`.
     public init(_ base: some DatabaseReader) {
@@ -660,41 +662,41 @@ extension AnyDatabaseReader: DatabaseReader {
     public var configuration: Configuration {
         base.configuration
     }
-    
+
     public var path: String {
         base.path
     }
-    
+
     public func close() throws {
         try base.close()
     }
-    
+
     public func interrupt() {
         base.interrupt()
     }
-    
+
     @_disfavoredOverload // SR-15150 Async overloading in protocol implementation fails
     public func read<T>(_ value: (Database) throws -> T) throws -> T {
         try base.read(value)
     }
-    
+
     public func asyncRead(_ value: @escaping (Result<Database, Error>) -> Void) {
         base.asyncRead(value)
     }
-    
+
     @_disfavoredOverload // SR-15150 Async overloading in protocol implementation fails
     public func unsafeRead<T>(_ value: (Database) throws -> T) throws -> T {
         try base.unsafeRead(value)
     }
-    
+
     public func asyncUnsafeRead(_ value: @escaping (Result<Database, Error>) -> Void) {
         base.asyncUnsafeRead(value)
     }
-    
+
     public func unsafeReentrantRead<T>(_ value: (Database) throws -> T) throws -> T {
         try base.unsafeReentrantRead(value)
     }
-    
+
     public func _add<Reducer: ValueReducer>(
         observation: ValueObservation<Reducer>,
         scheduling scheduler: some ValueObservationScheduler,
@@ -751,12 +753,12 @@ extension DatabaseSnapshotReader {
         // Reentrant reads are safe in a snapshot
         try unsafeReentrantRead(value)
     }
-    
+
     // There is no such thing as an unsafe access to a snapshot.
     public func unsafeRead<T>(_ value: (Database) throws -> T) throws -> T {
         try read(value)
     }
-    
+
     // There is no such thing as an unsafe access to a snapshot.
     public func asyncUnsafeRead(_ value: @escaping (Result<Database, Error>) -> Void) {
         asyncRead(value)

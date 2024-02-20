@@ -1,5 +1,7 @@
 #if canImport(Combine)
 import Combine
+#elseif canImport(OpenCombine)
+import OpenCombine
 #endif
 import Foundation
 
@@ -24,7 +26,7 @@ extension DatabaseRegionObservation {
     public init(tracking regions: any DatabaseRegionConvertible...) {
         self.init(tracking: regions)
     }
-    
+
     /// Creates a `DatabaseRegionObservation` that notifies all transactions
     /// that modify one of the provided regions.
     ///
@@ -48,7 +50,7 @@ extension DatabaseRegionObservation {
         case pending
         case started(DatabaseRegionObserver)
     }
-    
+
     /// Starts observing the database.
     ///
     /// The observation lasts until the returned cancellable is cancelled
@@ -90,7 +92,7 @@ extension DatabaseRegionObservation {
     -> AnyDatabaseCancellable
     {
         @LockedBox var state = ObservationState.pending
-        
+
         // Use unsafeReentrantWrite so that observation can start from any
         // dispatch queue.
         writer.unsafeReentrantWrite { db in
@@ -103,21 +105,21 @@ extension DatabaseRegionObservation {
                         }
                         onChange($0)
                     })
-                    
+
                     // Use the `.observerLifetime` extent so that we can cancel
                     // the observation by deallocating the observer. This is
                     // a simpler way to cancel the observation than waiting for
                     // *another* write access in order to explicitly remove
                     // the observer.
                     db.add(transactionObserver: observer, extent: .observerLifetime)
-                    
+
                     $0 = .started(observer)
                 }
             } catch {
                 onError(error)
             }
         }
-        
+
         return AnyDatabaseCancellable {
             // Deallocates the transaction observer. This makes sure that the
             // `onChange` callback will never be called again, because the
@@ -131,7 +133,7 @@ extension DatabaseRegionObservation {
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
 extension DatabaseRegionObservation {
     // MARK: - Publishing Impactful Transactions
-    
+
     /// Returns a publisher that observes the database.
     ///
     /// The publisher publishes ``Database`` connections on the writer dispatch
@@ -151,35 +153,35 @@ private class DatabaseRegionObserver: TransactionObserver {
     let region: DatabaseRegion
     let onChange: (Database) -> Void
     var isChanged = false
-    
+
     init(region: DatabaseRegion, onChange: @escaping (Database) -> Void) {
         self.region = region
         self.onChange = onChange
     }
-    
+
     func observes(eventsOfKind eventKind: DatabaseEventKind) -> Bool {
         region.isModified(byEventsOfKind: eventKind)
     }
-    
+
     func databaseDidChange() {
         isChanged = true
         stopObservingDatabaseChangesUntilNextTransaction()
     }
-    
+
     func databaseDidChange(with event: DatabaseEvent) {
         if region.isModified(by: event) {
             isChanged = true
             stopObservingDatabaseChangesUntilNextTransaction()
         }
     }
-    
+
     func databaseDidCommit(_ db: Database) {
         guard isChanged else { return }
         isChanged = false
-        
+
         onChange(db)
     }
-    
+
     func databaseDidRollback(_ db: Database) {
         isChanged = false
     }
@@ -194,15 +196,15 @@ extension DatabasePublishers {
     public struct DatabaseRegion: Publisher {
         public typealias Output = Database
         public typealias Failure = Error
-        
+
         let writer: any DatabaseWriter
         let observation: DatabaseRegionObservation
-        
+
         init(_ observation: DatabaseRegionObservation, in writer: some DatabaseWriter) {
             self.writer = writer
             self.observation = observation
         }
-        
+
         public func receive<S>(subscriber: S) where S: Subscriber, Failure == S.Failure, Output == S.Input {
             let subscription = DatabaseRegionSubscription(
                 writer: writer,
@@ -211,7 +213,7 @@ extension DatabasePublishers {
             subscriber.receive(subscription: subscription)
         }
     }
-    
+
     private class DatabaseRegionSubscription<Downstream: Subscriber>: Subscription
     where Downstream.Failure == Error, Downstream.Input == Database
     {
@@ -220,30 +222,30 @@ extension DatabasePublishers {
             let writer: any DatabaseWriter
             let observation: DatabaseRegionObservation
         }
-        
+
         private struct Observing {
             let downstream: Downstream
             let writer: any DatabaseWriter // Retain writer until subscription is finished
             var remainingDemand: Subscribers.Demand
         }
-        
+
         private enum State {
             // Waiting for demand, not observing the database.
             case waitingForDemand(WaitingForDemand)
-            
+
             // Observing the database.
             case observing(Observing)
-            
+
             // Completed or cancelled, not observing the database.
             case finished
         }
-        
+
         // cancellable is not stored in self.state because we must enter the
         // .observing state *before* the observation starts.
         private var cancellable: AnyDatabaseCancellable?
         private var state: State
         private var lock = NSRecursiveLock() // Allow re-entrancy
-        
+
         init(
             writer: some DatabaseWriter,
             observation: DatabaseRegionObservation,
@@ -254,7 +256,7 @@ extension DatabasePublishers {
                                         writer: writer,
                                         observation: observation))
         }
-        
+
         func request(_ demand: Subscribers.Demand) {
             lock.synchronized {
                 switch state {
@@ -270,24 +272,24 @@ extension DatabasePublishers {
                         in: info.writer,
                         onError: { [weak self] in self?.receive(failure: $0) },
                         onChange: { [weak self] in self?.receive($0) })
-                    
+
                 case var .observing(info):
                     info.remainingDemand += demand
                     state = .observing(info)
-                    
+
                 case .finished:
                     break
                 }
             }
         }
-        
+
         func cancel() {
             lock.synchronized {
                 cancellable = nil
                 state = .finished
             }
         }
-        
+
         private func receive(_ value: Database) {
             lock.synchronized {
                 if case let .observing(info) = state,
@@ -302,7 +304,7 @@ extension DatabasePublishers {
                 }
             }
         }
-        
+
         private func receive(failure error: Error) {
             lock.synchronized {
                 if case let .observing(info) = state {

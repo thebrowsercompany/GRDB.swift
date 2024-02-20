@@ -8,7 +8,7 @@ var swiftSettings: [SwiftSetting] = [
     .define("SQLITE_ENABLE_FTS5"),
 ]
 var cSettings: [CSetting] = []
-var dependencies: [PackageDescription.Package.Dependency] = []
+var dependencies: [PackageDescription.Package.Dependency] = [.openCombine].compactMap { $0 }
 
 // For Swift 5.8+
 //swiftSettings.append(.enableUpcomingFeature("ExistentialAny"))
@@ -48,10 +48,11 @@ let package = Package(
     targets: [
         .systemLibrary(
             name: "CSQLite",
+            pkgConfig: "sqlite3",
             providers: [.apt(["libsqlite3-dev"])]),
         .target(
             name: "GRDB",
-            dependencies: ["CSQLite"],
+            dependencies: ["CSQLite", .openCombine].compactMap { $0 },
             path: "GRDB",
             resources: [.copy("PrivacyInfo.xcprivacy")],
             cSettings: cSettings,
@@ -81,3 +82,24 @@ let package = Package(
     ],
     swiftLanguageVersions: [.v5]
 )
+
+extension Package.Dependency {
+
+  static var openCombine: Package.Dependency? {
+    #if os(Windows)
+    .package(url: "https://github.com/OpenCombine/OpenCombine.git", from: "0.13.0")
+    #else
+    return nil
+    #endif
+  }
+}
+
+extension Target.Dependency {
+  static var openCombine: Target.Dependency? {
+    #if os(Windows)
+    .product(name: "OpenCombine", package: "OpenCombine")
+    #else
+    nil
+    #endif
+  }
+}

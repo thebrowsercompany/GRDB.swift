@@ -1,5 +1,7 @@
 #if os(Linux)
 import Glibc
+#elseif os(Windows)
+import ucrt
 #endif
 
 /// `StatementAuthorizer` provides information about compiled database
