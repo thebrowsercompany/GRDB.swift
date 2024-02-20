@@ -31,21 +31,21 @@
 Use this library to save your application’s permanent data into SQLite databases. It comes with built-in tools that address common needs:
 
 - **SQL Generation**
-    
+
     Enhance your application models with persistence and fetching methods, so that you don't have to deal with SQL and raw database rows when you don't want to.
 
 - **Database Observation**
-    
-    Get notifications when database values are modified. 
+
+    Get notifications when database values are modified.
 
 - **Robust Concurrency**
-    
-    Multi-threaded applications can efficiently use their databases, including WAL databases that support concurrent reads and writes. 
+
+    Multi-threaded applications can efficiently use their databases, including WAL databases that support concurrent reads and writes.
 
 - **Migrations**
-    
+
     Evolve the schema of your database as you ship new versions of your application.
-    
+
 - **Leverage your SQLite skills**
 
     Not all developers need advanced SQLite features. But when you do, GRDB is as sharp as you want it to be. Come with your SQL and SQLite skills, or learn new ones as you go!
@@ -114,14 +114,14 @@ try dbQueue.write { db in
           latitude DOUBLE NOT NULL,
           longitude DOUBLE NOT NULL)
         """)
-    
+
     try db.execute(sql: """
         INSERT INTO place (title, favorite, latitude, longitude)
         VALUES (?, ?, ?, ?)
         """, arguments: ["Paris", true, 48.85341, 2.3488])
-    
+
     let parisId = db.lastInsertedRowID
-    
+
     // Avoid SQL injection with SQL interpolation
     try db.execute(literal: """
         INSERT INTO place (title, favorite, latitude, longitude)
@@ -148,7 +148,7 @@ try dbQueue.read { db in
             latitude: row["latitude"],
             longitude: row["longitude"])
     }
-    
+
     // Fetch values
     let placeCount = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM place")! // Int
     let placeTitles = try String.fetchAll(db, sql: "SELECT title FROM place") // [String]
@@ -186,16 +186,16 @@ try dbQueue.write { db in
         t.column("longitude", .double).notNull()
         t.column("latitude", .double).notNull()
     }
-    
+
     var berlin = Place(
         id: nil,
         title: "Berlin",
         isFavorite: false,
         coordinate: CLLocationCoordinate2D(latitude: 52.52437, longitude: 13.41053))
-    
+
     try berlin.insert(db)
     berlin.id // some value
-    
+
     berlin.isFavorite = true
     try berlin.update(db)
 }
@@ -212,19 +212,19 @@ See [Records](#records)
 try dbQueue.read { db in
     // Place
     let paris = try Place.find(db, id: 1)
-    
+
     // Place?
     let berlin = try Place.filter(Column("title") == "Berlin").fetchOne(db)
-    
+
     // [Place]
     let favoritePlaces = try Place
         .filter(Column("favorite") == true)
         .order(Column("title"))
         .fetchAll(db)
-    
+
     // Int
     let favoriteCount = try Place.filter(Column("favorite")).fetchCount(db)
-    
+
     // SQL is always welcome
     let places = try Place.fetchAll(db, sql: "SELECT * FROM place")
 }
@@ -323,7 +323,7 @@ Documentation
 #### Companion Libraries
 
 - [GRDBQuery](https://github.com/groue/GRDBQuery): Access and observe the database from your SwiftUI views.
-- [GRDBSnapshotTesting](https://github.com/groue/GRDBSnapshotTesting): Test your database. 
+- [GRDBSnapshotTesting](https://github.com/groue/GRDBSnapshotTesting): Test your database.
 
 **[FAQ]**
 
@@ -357,6 +357,8 @@ The [Swift Package Manager](https://swift.org/package-manager/) automates the di
 GRDB offers two libraries, `GRDB` and `GRDB-dynamic`. Pick only one. When in doubt, prefer `GRDB`. The `GRDB-dynamic` library can reveal useful if you are going to link it with multiple targets within your app and only wish to link to a shared, dynamic framework once. See [How to link a Swift Package as dynamic](https://forums.swift.org/t/how-to-link-a-swift-package-as-dynamic/32062) for more information.
 
 > **Note**: Linux is not currently supported.
+>
+> **Note**: Windows is experimental supported although additional processing is required. See also [Build for windows].
 >
 > **Warning**: Due to an Xcode bug, you will get "No such module 'CSQLite'" errors when you want to embed the GRDB package in other targets than the main application (watch extensions, for example). UI and Unit testing targets are OK, though. See [#642](https://github.com/groue/GRDB.swift/issues/642#issuecomment-575994093) for more information.
 
@@ -444,11 +446,11 @@ try dbQueue.write { db in
             name TEXT NOT NULL,
             score INT)
         """)
-    
+
     try db.execute(
         sql: "INSERT INTO player (name, score) VALUES (?, ?)",
         arguments: ["Barbara", 1000])
-    
+
     try db.execute(
         sql: "UPDATE player SET score = :score WHERE id = :id",
         arguments: ["score": 1000, "id": 1])
@@ -583,25 +585,25 @@ try Row.fetchOne(...)    // Row?
 ```
 
 - `fetchCursor` returns a **[cursor](#cursors)** over fetched values:
-    
+
     ```swift
     let rows = try Row.fetchCursor(db, sql: "SELECT ...") // A Cursor of Row
     ```
-    
+
 - `fetchAll` returns an **array**:
-    
+
     ```swift
     let players = try Player.fetchAll(db, sql: "SELECT ...") // [Player]
     ```
 
 - `fetchSet` returns a **set**:
-    
+
     ```swift
     let names = try String.fetchSet(db, sql: "SELECT ...") // Set<String>
     ```
 
 - `fetchOne` returns a **single optional value**, and consumes a single database row (if any).
-    
+
     ```swift
     let count = try Int.fetchOne(db, sql: "SELECT COUNT(*) ...") // Int?
     ```
@@ -639,7 +641,7 @@ try dbQueue.read { db in
 ```
 
 - **Cursors can not be used on any thread**: you must consume a cursor on the dispatch queue it was created in. Particularly, don't extract a cursor out of a database access method:
-    
+
     ```swift
     // Wrong
     let cursor = try dbQueue.read { db in
@@ -647,9 +649,9 @@ try dbQueue.read { db in
     }
     while let player = try cursor.next() { ... }
     ```
-    
+
     Conversely, arrays and sets may be consumed on any thread:
-    
+
     ```swift
     // OK
     let array = try dbQueue.read { db in
@@ -657,7 +659,7 @@ try dbQueue.read { db in
     }
     for player in array { ... }
     ```
-    
+
 - **Cursors can be iterated only one time.** Arrays and sets can be iterated many times.
 
 - **Cursors iterate database results in a lazy fashion**, and don't consume much memory. Arrays and sets contain copies of database values, and may take a lot of memory when there are many fetched results.
@@ -665,46 +667,46 @@ try dbQueue.read { db in
 - **Cursors are granted with direct access to SQLite,** unlike arrays and sets that have to take the time to copy database values. If you look after extra performance, you may prefer cursors.
 
 - **Cursors can feed Swift collections.**
-    
+
     You will most of the time use `fetchAll` or `fetchSet` when you want an array or a set. For more specific needs, you may prefer one of the initializers below. All of them accept an extra optional `minimumCapacity` argument which helps optimizing your app when you have an idea of the number of elements in a cursor (the built-in `fetchAll` and `fetchSet` do not perform such an optimization).
-    
+
     **Arrays** and all types conforming to `RangeReplaceableCollection`:
-    
+
     ```swift
     // [String]
     let cursor = try String.fetchCursor(db, ...)
     let array = try Array(cursor)
     ```
-    
+
     **Sets**:
-    
+
     ```swift
     // Set<Int>
     let cursor = try Int.fetchCursor(db, ...)
     let set = try Set(cursor)
     ```
-    
+
     **Dictionaries**:
-    
+
     ```swift
     // [Int64: [Player]]
     let cursor = try Player.fetchCursor(db)
     let dictionary = try Dictionary(grouping: cursor, by: { $0.teamID })
-    
+
     // [Int64: Player]
     let cursor = try Player.fetchCursor(db).map { ($0.id, $0) }
     let dictionary = try Dictionary(uniqueKeysWithValues: cursor)
     ```
 
 - **Cursors adopt the [Cursor](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/cursor) protocol, which looks a lot like standard [lazy sequences](https://developer.apple.com/reference/swift/lazysequenceprotocol) of Swift.** As such, cursors come with many convenience methods: `compactMap`, `contains`, `dropFirst`, `dropLast`, `drop(while:)`, `enumerated`, `filter`, `first`, `flatMap`, `forEach`, `joined`, `joined(separator:)`, `max`, `max(by:)`, `min`, `min(by:)`, `map`, `prefix`, `prefix(while:)`, `reduce`, `reduce(into:)`, `suffix`:
-    
+
     ```swift
     // Prints all Github links
     try URL
         .fetchCursor(db, sql: "SELECT url FROM link")
         .filter { url in url.host == "github.com" }
         .forEach { url in print(url) }
-    
+
     // An efficient cursor of coordinates:
     let locations = try Row.
         .fetchCursor(db, sql: "SELECT latitude, longitude FROM place")
@@ -716,16 +718,16 @@ try dbQueue.read { db in
 - **Cursors are not Swift sequences.** That's because Swift sequences can't handle iteration errors, when reading SQLite results may fail at any time.
 
 - **Cursors require a little care**:
-    
+
     - Don't modify the results during a cursor iteration:
-        
+
         ```swift
         // Undefined behavior
         while let player = try players.next() {
             try db.execute(sql: "DELETE ...")
         }
         ```
-    
+
     - Don't turn a cursor of `Row` into an array or a set. You would not get the distinct rows you expect. To get a array of rows, use `Row.fetchAll(...)`. To get a set of rows, use `Row.fetchSet(...)`. Generally speaking, make sure you copy a row whenever you extract it from a cursor for later use: `row.copy()`.
 
 If you don't see, or don't care about the difference, use arrays. If you care about memory and performance, use cursors when appropriate.
@@ -750,7 +752,7 @@ try dbQueue.read { db in
     try Row.fetchAll(db, sql: "SELECT ...", arguments: ...)    // [Row]
     try Row.fetchSet(db, sql: "SELECT ...", arguments: ...)    // Set<Row>
     try Row.fetchOne(db, sql: "SELECT ...", arguments: ...)    // Row?
-    
+
     let rows = try Row.fetchCursor(db, sql: "SELECT * FROM wine")
     while let row = try rows.next() {
         let name: String = row["name"]
@@ -819,7 +821,7 @@ row[...] as Int?
 ```
 
 > **Warning**: avoid the `as!` and `as?` operators:
-> 
+>
 > ```swift
 > if let int = row[...] as? Int { ... } // BAD - doesn't work
 > if let int = row[...] as Int? { ... } // GOOD
@@ -828,53 +830,53 @@ row[...] as Int?
 Generally speaking, you can extract the type you need, provided it can be converted from the underlying SQLite value:
 
 - **Successful conversions include:**
-    
+
     - All numeric SQLite values to all numeric Swift types, and Bool (zero is the only false boolean).
     - Text SQLite values to Swift String.
     - Blob SQLite values to Foundation Data.
-    
+
     See [Values](#values) for more information on supported types (Bool, Int, String, Date, Swift enums, etc.)
-    
+
 - **NULL returns nil.**
-    
+
     ```swift
     let row = try Row.fetchOne(db, sql: "SELECT NULL")!
     row[0] as Int? // nil
     row[0] as Int  // fatal error: could not convert NULL to Int.
     ```
-    
+
     There is one exception, though: the [DatabaseValue](#databasevalue) type:
-    
+
     ```swift
     row[0] as DatabaseValue // DatabaseValue.null
     ```
-    
+
 - **Missing columns return nil.**
-    
+
     ```swift
     let row = try Row.fetchOne(db, sql: "SELECT 'foo' AS foo")!
     row["missing"] as String? // nil
     row["missing"] as String  // fatal error: no such column: missing
     ```
-    
+
     You can explicitly check for a column presence with the `hasColumn` method.
 
 - **Invalid conversions throw a fatal error.**
-    
+
     ```swift
     let row = try Row.fetchOne(db, sql: "SELECT 'Mom’s birthday'")!
     row[0] as String // "Mom’s birthday"
     row[0] as Date?  // fatal error: could not convert "Mom’s birthday" to Date.
     row[0] as Date   // fatal error: could not convert "Mom’s birthday" to Date.
-    
+
     let row = try Row.fetchOne(db, sql: "SELECT 256")!
     row[0] as Int    // 256
     row[0] as UInt8? // fatal error: could not convert 256 to UInt8.
     row[0] as UInt8  // fatal error: could not convert 256 to UInt8.
     ```
-    
+
     Those conversion fatal errors can be avoided with the [DatabaseValue](#databasevalue) type:
-    
+
     ```swift
     let row = try Row.fetchOne(db, sql: "SELECT 'Mom’s birthday'")!
     let dbValue: DatabaseValue = row[0]
@@ -886,20 +888,20 @@ Generally speaking, you can extract the type you need, provided it can be conver
         // Handle invalid date
     }
     ```
-    
+
     This extra verbosity is the consequence of having to deal with an untrusted database: you may consider fixing the content of your database instead. See [Fatal Errors](#fatal-errors) for more information.
-    
+
 - **SQLite has a weak type system, and provides [convenience conversions](https://www.sqlite.org/c3ref/column_blob.html) that can turn String to Int, Double to Blob, etc.**
-    
+
     GRDB will sometimes let those conversions go through:
-    
+
     ```swift
     let rows = try Row.fetchCursor(db, sql: "SELECT '20 small cigars'")
     while let row = try rows.next() {
         row[0] as Int   // 20
     }
     ```
-    
+
     Don't freak out: those conversions did not prevent SQLite from becoming the immensely successful database engine you want to use. And GRDB adds safety checks described just above. You can also prevent those convenience conversions altogether by using the [DatabaseValue](#databasevalue) type.
 
 
@@ -1003,7 +1005,7 @@ for (columnName, dbValue) in row { ... } // ("foo", 1), ("foo", 2)
     ```
 
 - A `[String: Any]` dictionary that can feed, for example, JSONSerialization:
-    
+
     ```swift
     let dict = Dictionary(
         row.map { (column, dbValue) in
@@ -1029,7 +1031,7 @@ try dbQueue.read { db in
     try Int.fetchAll(db, sql: "SELECT ...", arguments: ...)    // [Int]
     try Int.fetchSet(db, sql: "SELECT ...", arguments: ...)    // Set<Int>
     try Int.fetchOne(db, sql: "SELECT ...", arguments: ...)    // Int?
-    
+
     let maxScore = try Int.fetchOne(db, sql: "SELECT MAX(score) FROM player") // Int?
     let names = try String.fetchAll(db, sql: "SELECT name FROM player")       // [String]
 }
@@ -1059,7 +1061,7 @@ try dbQueue.read { db in
 ```
 
 > :bulb: **Tip**: One advanced use case, when you fetch one value, is to distinguish the cases of a statement that yields no row, or one row with a NULL value. To do so, use `Optional<Int>.fetchOne`, which returns a double optional `Int??`:
-> 
+>
 > ```swift
 > // No row:
 > try Optional<Int>.fetchOne(db, sql: "SELECT 42 WHERE FALSE") // .none
@@ -1077,9 +1079,9 @@ There are many supported value types (Bool, Int, String, Date, Swift enums, etc.
 GRDB ships with built-in support for the following value types:
 
 - **Swift Standard Library**: Bool, Double, Float, all signed and unsigned integer types, String, [Swift enums](#swift-enums).
-    
+
 - **Foundation**: [Data](#data-and-memory-savings), [Date](#date-and-datecomponents), [DateComponents](#date-and-datecomponents), [Decimal](#nsnumber-nsdecimalnumber-and-decimal), NSNull, [NSNumber](#nsnumber-nsdecimalnumber-and-decimal), NSString, URL, [UUID](#uuid).
-    
+
 - **CoreGraphics**: CGFloat.
 
 - **[DatabaseValue](#databasevalue)**, the type which gives information about the raw value stored in the database.
@@ -1120,7 +1122,7 @@ Use values in [Records](#records):
 struct Link: FetchableRecord {
     var url: URL
     var isVerified: Bool
-    
+
     init(row: Row) {
         url = row["url"]
         isVerified = row["verified"]
@@ -1208,7 +1210,7 @@ let creationDate: Date = row["creationDate"]
 Dates are stored using the format "YYYY-MM-DD HH:MM:SS.SSS" in the UTC time zone. It is precise to the millisecond.
 
 > **Note**: this format was chosen because it is the only format that is:
-> 
+>
 > - Comparable (`ORDER BY date` works)
 > - Comparable with the SQLite keyword CURRENT_TIMESTAMP (`WHERE date > CURRENT_TIMESTAMP` works)
 > - Able to feed [SQLite date & time functions](https://www.sqlite.org/lang_datefunc.html)
@@ -1227,7 +1229,7 @@ Some applications may prefer another date format:
 
 **You should think twice before choosing a different date format:**
 
-- ISO-8601 is about *exchange and communication*, when SQLite is about *storage and data manipulation*. Sharing the same representation in your database and in JSON files only provides a superficial convenience, and should be the least of your priorities. Don't store dates as ISO-8601 without understanding what you lose. For example, ISO-8601 time zones forbid database-level date comparison. 
+- ISO-8601 is about *exchange and communication*, when SQLite is about *storage and data manipulation*. Sharing the same representation in your database and in JSON files only provides a superficial convenience, and should be the least of your priorities. Don't store dates as ISO-8601 without understanding what you lose. For example, ISO-8601 time zones forbid database-level date comparison.
 - Sub-millisecond precision and exact `Date` roundtrip are not as obvious needs as it seems at first sight. Dates generally don't precisely roundtrip as soon as they leave your application anyway, because the other systems your app communicates with use their own date representation (the Android version of your app, the server your application is talking to, etc.) On top of that, `Date` comparison is at least as hard and nasty as [floating point comparison](https://www.google.com/search?q=floating+point+comparison+is+hard).
 
 The customization of date format is explicit. For example:
@@ -1297,7 +1299,7 @@ Here is how GRDB supports the various data types supported by SQLite:
     let number = try NSDecimalNumber.fetchOne(db, sql: "SELECT 1.23")   // NSDecimalNumber
     let number = try Decimal.fetchOne(db, sql: "SELECT -100")           // Decimal
     ```
-    
+
 - All three types decode database strings as decimal numbers:
 
     ```swift
@@ -1311,17 +1313,17 @@ Here is how GRDB supports the various data types supported by SQLite:
     ```swift
     // INSERT INTO transfer VALUES (10)
     try db.execute(sql: "INSERT INTO transfer VALUES (?)", arguments: [NSNumber(value: 10)])
-    
+
     // INSERT INTO transfer VALUES (10.0)
     try db.execute(sql: "INSERT INTO transfer VALUES (?)", arguments: [NSNumber(value: 10.0)])
-    
+
     // INSERT INTO transfer VALUES (10)
     try db.execute(sql: "INSERT INTO transfer VALUES (?)", arguments: [NSDecimalNumber(string: "10.0")])
-    
+
     // INSERT INTO transfer VALUES (10.5)
     try db.execute(sql: "INSERT INTO transfer VALUES (?)", arguments: [NSDecimalNumber(string: "10.5")])
     ```
-    
+
     > **Warning**: since SQLite does not support decimal numbers, sending a non-integer `NSDecimalNumber` can result in a loss of precision during the conversion to double.
     >
     > Instead of sending non-integer `NSDecimalNumber` to the database, you may prefer:
@@ -1334,7 +1336,7 @@ Here is how GRDB supports the various data types supported by SQLite:
     ```swift
     // INSERT INTO transfer VALUES ('10')
     try db.execute(sql: "INSERT INTO transfer VALUES (?)", arguments: [Decimal(10)])
-    
+
     // INSERT INTO transfer VALUES ('10.5')
     try db.execute(sql: "INSERT INTO transfer VALUES (?)", arguments: [Decimal(string: "10.5")!])
     ```
@@ -1503,10 +1505,10 @@ Before registering a custom aggregate, you need to define a type that adopts the
 protocol DatabaseAggregate {
     // Initializes an aggregate
     init()
-    
+
     // Called at each step of the aggregation
     mutating func step(_ dbValues: [DatabaseValue]) throws
-    
+
     // Returns the final result
     func finalize() throws -> DatabaseValueConvertible?
 }
@@ -1517,7 +1519,7 @@ For example:
 ```swift
 struct MaxLength : DatabaseAggregate {
     var maxLength: Int = 0
-    
+
     mutating func step(_ dbValues: [DatabaseValue]) {
         // At each step, extract string value, if any...
         guard let string = String.fromDatabaseValue(dbValues[0]) else {
@@ -1529,7 +1531,7 @@ struct MaxLength : DatabaseAggregate {
             maxLength = length
         }
     }
-    
+
     func finalize() -> DatabaseValueConvertible? {
         maxLength
     }
@@ -1581,19 +1583,19 @@ GRDB comes with a set of schema introspection methods:
 try dbQueue.read { db in
     // Bool, true if the table exists
     try db.tableExists("player")
-    
+
     // [ColumnInfo], the columns in the table
     try db.columns(in: "player")
-    
+
     // PrimaryKeyInfo
     try db.primaryKey("player")
-    
+
     // [ForeignKeyInfo], the foreign keys defined on the table
     try db.foreignKeys(on: "player")
-    
+
     // [IndexInfo], the indexes defined on the table
     try db.indexes(on: "player")
-    
+
     // Bool, true if column(s) is a unique key (primary key or unique index)
     try db.table("player", hasUniqueKey: ["email"])
 }
@@ -1721,7 +1723,7 @@ let bestPlayers = try Player                    // [Player]
     .order(Column("score").desc)
     .limit(10)
     .fetchAll(db)
-    
+
 let spain = try Country.fetchOne(db, id: "ES")  // Country?
 let italy = try Country.find(db, id: "IT")      // Country
 ```
@@ -1819,20 +1821,20 @@ Details follow:
 **GRDB ships with three record protocols**. Your own types will adopt one or several of them, according to the abilities you want to extend your types with.
 
 - [FetchableRecord] is able to **decode database rows**.
-    
+
     ```swift
     struct Place: FetchableRecord { ... }
     let places = try dbQueue.read { db in
         try Place.fetchAll(db, sql: "SELECT * FROM place")
     }
     ```
-    
+
     > :bulb: **Tip**: `FetchableRecord` can derive its implementation from the standard `Decodable` protocol. See [Codable Records] for more information.
-    
+
     `FetchableRecord` can decode database rows, but it is not able to build SQL requests for you. For that, you also need `TableRecord`:
-    
+
 - [TableRecord] is able to **generate SQL queries**:
-    
+
     ```swift
     struct Place: TableRecord { ... }
     let placeCount = try dbQueue.read { db in
@@ -1840,9 +1842,9 @@ Details follow:
         try Place.fetchCount(db)
     }
     ```
-    
+
     When a type adopts both `TableRecord` and `FetchableRecord`, it can load from those requests:
-    
+
     ```swift
     struct Place: TableRecord, FetchableRecord { ... }
     try dbQueue.read { db in
@@ -1852,7 +1854,7 @@ Details follow:
     ```
 
 - [PersistableRecord] is able to **write**: it can create, update, and delete rows in the database:
-    
+
     ```swift
     struct Place : PersistableRecord { ... }
     try dbQueue.write { db in
@@ -1860,9 +1862,9 @@ Details follow:
         try Place(...).insert(db)
     }
     ```
-    
+
     A persistable record can also [compare](#record-comparison) itself against other records, and avoid useless database updates.
-    
+
     > :bulb: **Tip**: `PersistableRecord` can derive its implementation from the standard `Encodable` protocol. See [Codable Records] for more information.
 
 
@@ -1906,7 +1908,7 @@ extension Place : FetchableRecord {
     enum Columns: String, ColumnExpression {
         case id, title, latitude, longitude
     }
-    
+
     init(row: Row) {
         id = row[Columns.id]
         title = row[Columns.title]
@@ -2056,7 +2058,7 @@ extension Place : MutablePersistableRecord {
         container["latitude"] = coordinate.latitude
         container["longitude"] = coordinate.longitude
     }
-    
+
     // Update auto-incremented id upon successful insertion
     mutating func didInsert(_ inserted: InsertionSuccess) {
         id = inserted.rowID
@@ -2079,7 +2081,7 @@ extension Place : MutablePersistableRecord {
     enum Columns: String, ColumnExpression {
         case id, title, latitude, longitude
     }
-    
+
     func encode(to container: inout PersistenceContainer) {
         container[Columns.id] = id
         container[Columns.title] = title
@@ -2097,7 +2099,7 @@ struct Player: Encodable, MutablePersistableRecord {
     var id: Int64?
     var name: String
     var score: Int
-    
+
     // Update auto-incremented id upon successful insertion
     mutating func didInsert(_ inserted: InsertionSuccess) {
         id = inserted.rowID
@@ -2180,18 +2182,18 @@ For more information about batch updates, see [Update Requests](#update-requests
 [PersistableRecord] provides three upsert methods:
 
 - `upsert(_:)`
-    
+
     Inserts or updates a record.
-    
+
     The upsert behavior is triggered by a violation of any uniqueness constraint on the table (primary key or unique index). In case of conflict, all columns but the primary key are overwritten with the inserted values:
-    
+
     ```swift
     struct Player: Encodable, PersistableRecord {
         var id: Int64
         var name: String
         var score: Int
     }
-    
+
     // INSERT INTO player (id, name, score)
     // VALUES (1, 'Arthur', 1000)
     // ON CONFLICT DO UPDATE SET
@@ -2204,19 +2206,19 @@ For more information about batch updates, see [Update Requests](#update-requests
 - `upsertAndFetch(_:onConflict:doUpdate:)` (requires [FetchableRecord] conformance)
 
     Inserts or updates a record, and returns the upserted record.
-    
+
     The `onConflict` and `doUpdate` arguments let you further control the upsert behavior. Make sure you check the [SQLite UPSERT documentation](https://www.sqlite.org/lang_UPSERT.html) for detailed information.
-    
+
     - `onConflict`: the "conflict target" is the array of columns in the uniqueness constraint (primary key or unique index) that triggers the upsert.
-        
+
         If empty (the default), all uniqueness constraint are considered.
-    
+
     - `doUpdate`: a closure that returns columns assignments to perform in case of conflict. Other columns are overwritten with the inserted values.
-        
+
         By default, all inserted columns but the primary key and the conflict target are overwritten.
-    
+
     In the example below, we upsert the new vocabulary word "jovial". It is inserted if that word is not already in the dictionary. Otherwise, `count` is incremented, `isTainted` is not overwritten, and `kind` is overwritten:
-    
+
     ```swift
     // CREATE TABLE vocabulary(
     //   word TEXT NOT NULL PRIMARY KEY,
@@ -2228,7 +2230,7 @@ For more information about batch updates, see [Update Requests](#update-requests
         var kind: String
         var isTainted: Bool
     }
-    
+
     // INSERT INTO vocabulary(word, kind, isTainted)
     // VALUES('jovial', 'adjective', 0)
     // ON CONFLICT(word) DO UPDATE SET \
@@ -2243,9 +2245,9 @@ For more information about batch updates, see [Update Requests](#update-requests
              Column("isTainted").noOverwrite] // on conflict, isTainted is NOT overwritten
         })
     ```
-    
+
     The `doUpdate` closure accepts an `excluded` TableAlias argument that refers to the inserted values that trigger the conflict. You can use it to specify an explicit overwrite, or to perform a computation. In the next example, the upsert keeps the maximum date in case of conflict:
-    
+
     ```swift
     // INSERT INTO message(id, text, date)
     // VALUES(...)
@@ -2308,7 +2310,7 @@ And now you can get a full player by inserting a partial one:
 ```swift
 try dbQueue.write { db in
     let partialPlayer = PartialPlayer(name: "Alice")
-    
+
     // INSERT INTO player (name) VALUES ('Alice') RETURNING *
     if let player = try partialPlayer.insertAndFetch(db, as: Player.self) {
         print(player.id)    // The inserted id
@@ -2323,7 +2325,7 @@ For extra precision, you can select only the columns you need, and fetch the des
 ```swift
 try dbQueue.write { db in
     let partialPlayer = PartialPlayer(name: "Alice")
-    
+
     // INSERT INTO player (name) VALUES ('Alice') RETURNING score
     let score = try partialPlayer.insertAndFetch(db, selection: [Column("score")]) { statement in
         try Int.fetchOne(statement)
@@ -2381,7 +2383,7 @@ In order to use a callback method, you need to provide its implementation. For e
 ```swift
 struct Player: MutablePersistableRecord {
     var id: Int64?
-    
+
     // Update auto-incremented id upon successful insertion
     mutating func didInsert(_ inserted: InsertionSuccess) {
         id = inserted.rowID
@@ -2400,7 +2402,7 @@ When you subclass the [Record](#record-class) class, override the callback, and 
 ```swift
 class Player: Record {
     var id: Int64?
-    
+
     // Update auto-incremented id upon successful insertion
     func didInsert(_ inserted: InsertionSuccess) {
         super.didInsert(inserted)
@@ -2414,7 +2416,7 @@ Callbacks can also help implementing record validation:
 ```swift
 struct Link: PersistableRecord {
     var url: URL
-    
+
     func willSave(_ db: Database) throws {
         if url.host == nil {
             throw ValidationError("url must be absolute.")
@@ -2439,7 +2441,7 @@ Here is a list with all the available [persistence callbacks], listed in the sam
     - `aroundInsert`
     - `didInsert`
     - `didSave`
-    
+
 - Updating a record (all `record.update` methods)
     - `willSave`
     - `aroundSave`
@@ -2447,7 +2449,7 @@ Here is a list with all the available [persistence callbacks], listed in the sam
     - `aroundUpdate`
     - `didUpdate`
     - `didSave`
-    
+
 - Deleting a record (only the `record.delete(_:)` method)
     - `willDelete`
     - `aroundDelete`
@@ -2466,7 +2468,7 @@ In the `MutablePersistableRecord` protocol, `willInsert` and `didInsert` are mut
 > ```swift
 > struct PictureFile: PersistableRecord {
 >     var path: String
->     
+>
 >     func willDelete(_ db: Database) {
 >         db.afterNextTransaction { _ in
 >             try? deleteFileOnDisk()
@@ -2504,17 +2506,17 @@ try Player.deleteAll(db, ids: [1, 2, 3])
 ```
 
 > **Note**: `Identifiable` is not available on all application targets, and not all tables have a single-column primary key. GRDB provides other methods that deal with primary and unique keys, but they won't check the type of their arguments:
-> 
+>
 > ```swift
 > // Available on non-Identifiable types
 > try Player.fetchOne(db, key: 1)
 > try Player.fetchOne(db, key: ["email": "arthur@example.com"])
 > try Country.fetchAll(db, keys: ["FR", "US"])
 > try Citizenship.fetchOne(db, key: ["citizenId": 1, "countryCode": "FR"])
-> 
+>
 > let request = Player.filter(key: 1)
 > let request = Player.filter(keys: [1, 2, 3])
-> 
+>
 > try Player.deleteOne(db, key: 1)
 > try Player.deleteAll(db, keys: [1, 2, 3])
 > ```
@@ -2528,7 +2530,7 @@ try Player.deleteAll(db, ids: [1, 2, 3])
 >     var name: String
 >     var score: Int
 > }
-> 
+>
 > extension Player: FetchableRecord, MutablePersistableRecord {
 >     // Update auto-incremented id upon successful insertion
 >     mutating func didInsert(_ inserted: InsertionSuccess) {
@@ -2556,7 +2558,7 @@ struct Country: Identifiable, FetchableRecord, PersistableRecord {
     var isoCode: String
     var name: String
     var population: Int
-    
+
     // Fulfill the Identifiable requirement
     var id: String { isoCode }
 }
@@ -2715,16 +2717,16 @@ struct Player: Codable, FetchableRecord, PersistableRecord, Identifiable {
 try dbQueue.write { db in
     let uuid = UUID()
     let player = Player(id: uuid, ...)
-    
+
     // OK: inserts a player in the database, with a string uuid
     try player.insert(db)
-    
+
     // OK: performs a string-based query, finds the inserted player
     _ = try Player.filter(id: uuid).fetchOne(db)
 
     // NOT OK: performs a blob-based query, fails to find the inserted player
     _ = try Player.filter(Column("id") == uuid).fetchOne(db)
-    
+
     // OK: performs a string-based query, finds the inserted player
     _ = try Player.filter(Column("id") == uuid.uuidString).fetchOne(db)
 }
@@ -2821,7 +2823,7 @@ class Place: Record {
     var title: String
     var isFavorite: Bool
     var coordinate: CLLocationCoordinate2D
-    
+
     init(id: Int64?, title: String, isFavorite: Bool, coordinate: CLLocationCoordinate2D) {
         self.id = id
         self.title = title
@@ -2829,15 +2831,15 @@ class Place: Record {
         self.coordinate = coordinate
         super.init()
     }
-    
+
     /// The table name
     override class var databaseTableName: String { "place" }
-    
+
     /// The table columns
     enum Columns: String, ColumnExpression {
         case id, title, favorite, latitude, longitude
     }
-    
+
     /// Creates a record from a database row
     required init(row: Row) throws {
         id = row[Columns.id]
@@ -2848,7 +2850,7 @@ class Place: Record {
             longitude: row[Columns.longitude])
         try super.init(row: row)
     }
-    
+
     /// The values persisted in the database
     override func encode(to container: inout PersistenceContainer) throws {
         container[Columns.id] = id
@@ -2857,7 +2859,7 @@ class Place: Record {
         container[Columns.latitude] = coordinate.latitude
         container[Columns.longitude] = coordinate.longitude
     }
-    
+
     /// Update record ID after a successful insertion
     override func didInsert(_ inserted: InsertionSuccess) {
         super.didInsert(inserted)
@@ -2899,9 +2901,9 @@ The `updateChanges` methods perform a database update of the changed columns onl
     ```
 
 - `updateChanges(_:modify:)`
-    
+
     This method lets you update a record in place:
-    
+
     ```swift
     if var player = try Player.fetchOne(db, id: 42) {
         let modified = try player.updateChanges(db) {
@@ -2916,7 +2918,7 @@ The `updateChanges` methods perform a database update of the changed columns onl
     ```
 
 - `updateChanges(_:)` (Record class only)
-    
+
     Instances of the [Record](#record-class) class are able to compare against themselves, and know if they have changes that have not been saved since the last fetch or saving:
 
     ```swift
@@ -3031,7 +3033,7 @@ The [five different policies](https://www.sqlite.org/lang_conflict.html) are: ab
 **SQLite let you specify conflict policies at two different places:**
 
 - In the definition of the database table:
-    
+
     ```swift
     // CREATE TABLE player (
     //     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -3041,15 +3043,15 @@ The [five different policies](https://www.sqlite.org/lang_conflict.html) are: ab
         t.autoIncrementedPrimaryKey("id")
         t.column("email", .text).unique(onConflict: .replace) // <--
     }
-    
+
     // Despite the unique index on email, both inserts succeed.
     // The second insert replaces the first row:
     try db.execute(sql: "INSERT INTO player (email) VALUES (?)", arguments: ["arthur@example.com"])
     try db.execute(sql: "INSERT INTO player (email) VALUES (?)", arguments: ["arthur@example.com"])
     ```
-    
+
 - In each modification query:
-    
+
     ```swift
     // CREATE TABLE player (
     //     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -3059,7 +3061,7 @@ The [five different policies](https://www.sqlite.org/lang_conflict.html) are: ab
         t.autoIncrementedPrimaryKey("id")
         t.column("email", .text).unique()
     }
-    
+
     // Again, despite the unique index on email, both inserts succeed.
     try db.execute(sql: "INSERT OR REPLACE INTO player (email) VALUES (?)", arguments: ["arthur@example.com"])
     try db.execute(sql: "INSERT OR REPLACE INTO player (email) VALUES (?)", arguments: ["arthur@example.com"])
@@ -3089,7 +3091,7 @@ try player.insert(db)
 ```
 
 > **Note**: If you specify the `ignore` policy for inserts, the [`didInsert`  callback](#persistence-callbacks) will be called with some random id in case of failed insert. You can detect failed insertions with `insertAndFetch`:
->     
+>
 > ```swift
 > // How to detect failed `INSERT OR IGNORE`:
 > // INSERT OR IGNORE INTO player ... RETURNING *
@@ -3145,7 +3147,7 @@ struct Place: Codable {
     var isFavorite: Bool
     private var latitude: CLLocationDegrees
     private var longitude: CLLocationDegrees
-    
+
     var coordinate: CLLocationCoordinate2D {
         get {
             CLLocationCoordinate2D(
@@ -3189,7 +3191,7 @@ extension Place: MutablePersistableRecord {
   <summary>Define a plain struct, and adopt the record protocols you need</summary>
 
 See the [Record Protocols Overview](#record-protocols-overview) for more information.
-    
+
 ```swift
 struct Place {
     var id: Int64?
@@ -3229,7 +3231,7 @@ extension Place: MutablePersistableRecord {
         container[Columns.latitude] = coordinate.latitude
         container[Columns.longitude] = coordinate.longitude
     }
-    
+
     // Update auto-incremented id upon successful insertion
     mutating func didInsert(_ inserted: InsertionSuccess) {
         id = inserted.rowID
@@ -3245,7 +3247,7 @@ extension Place: MutablePersistableRecord {
 This struct derives its persistence methods from the standard Encodable protocol (see [Codable Records]), but performs optimized row decoding by accessing database columns with numeric indexes.
 
 See the [Record Protocols Overview](#record-protocols-overview) for more information.
-    
+
 ```swift
 struct Place: Encodable {
     var id: Int64?
@@ -3253,7 +3255,7 @@ struct Place: Encodable {
     var isFavorite: Bool
     private var latitude: CLLocationDegrees
     private var longitude: CLLocationDegrees
-    
+
     var coordinate: CLLocationCoordinate2D {
         get {
             CLLocationCoordinate2D(
@@ -3277,7 +3279,7 @@ extension Place: TableRecord {
         static let latitude = Column(CodingKeys.latitude)
         static let longitude = Column(CodingKeys.longitude)
     }
-    
+
     /// Arrange the selected columns and lock their order
     static let databaseSelection: [any SQLSelectable] = [
         Columns.id,
@@ -3317,14 +3319,14 @@ extension Place: MutablePersistableRecord {
   <summary>Subclass the <code>Record</code> class</summary>
 
 See the [Record class](#record-class) for more information.
-    
+
 ```swift
 class Place: Record {
     var id: Int64?
     var title: String
     var isFavorite: Bool
     var coordinate: CLLocationCoordinate2D
-    
+
     init(id: Int64?, title: String, isFavorite: Bool, coordinate: CLLocationCoordinate2D) {
         self.id = id
         self.title = title
@@ -3332,15 +3334,15 @@ class Place: Record {
         self.coordinate = coordinate
         super.init()
     }
-    
+
     /// The table name
     override class var databaseTableName: String { "place" }
-    
+
     /// The table columns
     enum Columns: String, ColumnExpression {
         case id, title, isFavorite, latitude, longitude
     }
-    
+
     /// Creates a record from a database row
     required init(row: Row) throws {
         id = row[Columns.id]
@@ -3351,7 +3353,7 @@ class Place: Record {
             longitude: row[Columns.longitude])
         try super.init(row: row)
     }
-    
+
     /// The values persisted in the database
     override func encode(to container: inout PersistenceContainer) throws {
         container[Columns.id] = id
@@ -3360,7 +3362,7 @@ class Place: Record {
         container[Columns.latitude] = coordinate.latitude
         container[Columns.longitude] = coordinate.longitude
     }
-    
+
     // Update auto-incremented id upon successful insertion
     override func didInsert(_ inserted: InsertionSuccess) {
         super.didInsert(inserted)
@@ -3558,23 +3560,23 @@ The Query Interface
 try dbQueue.write { db in
     // Update database schema
     try db.create(table: "wine") { t in ... }
-    
+
     // Fetch records
     let wines = try Wine
         .filter(originColumn == "Burgundy")
         .order(priceColumn)
         .fetchAll(db)
-    
+
     // Count
     let count = try Wine
         .filter(colorColumn == Color.red)
         .fetchCount(db)
-    
+
     // Update
     try Wine
         .filter(originColumn == "Burgundy")
         .updateAll(db, priceColumn *= 0.75)
-    
+
     // Delete
     try Wine
         .filter(corkedColumn == true)
@@ -3590,20 +3592,20 @@ Please bear in mind that the query interface can not generate all possible SQL q
 try dbQueue.write { db in
     // Update database schema (with SQL)
     try db.execute(sql: "CREATE TABLE wine (...)")
-    
+
     // Fetch records (with SQL)
     let wines = try Wine.fetchAll(db,
         sql: "SELECT * FROM wine WHERE origin = ? ORDER BY price",
         arguments: ["Burgundy"])
-    
+
     // Count (with an SQL snippet)
     let count = try Wine
         .filter(sql: "color = ?", arguments: [Color.red])
         .fetchCount(db)
-    
+
     // Update (with SQL)
     try db.execute(sql: "UPDATE wine SET price = price * 0.75 WHERE origin = 'Burgundy'")
-    
+
     // Delete (with SQL)
     try db.execute(sql: "DELETE FROM wine WHERE corked")
 }
@@ -3694,11 +3696,11 @@ You can now build requests with the following methods: `all`, `none`, `select`, 
     // SELECT * FROM player
     Player.all()
     ```
-    
+
     By default, all columns are selected. See [Columns Selected by a Request].
 
 - [`select(...)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/selectionrequest/select(_:)-30yzl) and [`select(..., as:)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/queryinterfacerequest/select(_:as:)-282xc) define the selected columns. See [Columns Selected by a Request].
-    
+
     ```swift
     // SELECT name FROM player
     Player.select(nameColumn, as: String.self)
@@ -3712,7 +3714,7 @@ You can now build requests with the following methods: `all`, `none`, `select`, 
     ```
 
 - [`annotated(with: aggregate)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/derivablerequest/annotated(with:)-74xfs) extends the selection with [association aggregates](Documentation/AssociationsBasics.md#association-aggregates).
-    
+
     ```swift
     // SELECT team.*, COUNT(DISTINCT player.id) AS playerCount
     // FROM team
@@ -3722,7 +3724,7 @@ You can now build requests with the following methods: `all`, `none`, `select`, 
     ```
 
 - [`annotated(withRequired: association)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/joinablerequest/annotated(withrequired:)) and [`annotated(withOptional: association)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/joinablerequest/annotated(withoptional:)) extends the selection with [Associations].
-    
+
     ```swift
     // SELECT player.*, team.color
     // FROM player
@@ -3731,60 +3733,60 @@ You can now build requests with the following methods: `all`, `none`, `select`, 
     ```
 
 - [`distinct()`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/derivablerequest/distinct()) performs uniquing.
-    
+
     ```swift
     // SELECT DISTINCT name FROM player
     Player.select(nameColumn, as: String.self).distinct()
     ```
 
 - [`filter(expression)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/filteredrequest/filter(_:)) applies conditions.
-    
+
     ```swift
     // SELECT * FROM player WHERE id IN (1, 2, 3)
     Player.filter([1,2,3].contains(idColumn))
-    
+
     // SELECT * FROM player WHERE (name IS NOT NULL) AND (height > 1.75)
     Player.filter(nameColumn != nil && heightColumn > 1.75)
     ```
 
 - [`filter(id:)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/tablerequest/filter(id:)) and [`filter(ids:)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/tablerequest/filter(ids:)) are type-safe methods available on [Identifiable Records]:
-    
+
     ```swift
     // SELECT * FROM player WHERE id = 1
     Player.filter(id: 1)
-    
+
     // SELECT * FROM country WHERE isoCode IN ('FR', 'US')
     Country.filter(ids: ["FR", "US"])
     ```
-    
+
 - [`filter(key:)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/tablerequest/filter(key:)-1p9sq) and [`filter(keys:)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/tablerequest/filter(keys:)-6ggt1) apply conditions on primary and unique keys:
-    
+
     ```swift
     // SELECT * FROM player WHERE id = 1
     Player.filter(key: 1)
-    
+
     // SELECT * FROM country WHERE isoCode IN ('FR', 'US')
     Country.filter(keys: ["FR", "US"])
-    
+
     // SELECT * FROM citizenship WHERE citizenId = 1 AND countryCode = 'FR'
     Citizenship.filter(key: ["citizenId": 1, "countryCode": "FR"])
-    
+
     // SELECT * FROM player WHERE email = 'arthur@example.com'
     Player.filter(key: ["email": "arthur@example.com"])
     ```
 
 - `matching(pattern)` ([FTS3](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/tablerequest/matching(_:)-3s3zr), [FTS5](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/tablerequest/matching(_:)-7c1e8)) performs [full-text search](Documentation/FullTextSearch.md).
-    
+
     ```swift
     // SELECT * FROM document WHERE document MATCH 'sqlite database'
     let pattern = FTS3Pattern(matchingAllTokensIn: "SQLite database")
     Document.matching(pattern)
     ```
-    
+
     When the pattern is nil, no row will match.
 
 - [`group(expression, ...)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/aggregatingrequest/group(_:)-edak) groups rows.
-    
+
     ```swift
     // SELECT name, MAX(score) FROM player GROUP BY name
     Player
@@ -3793,7 +3795,7 @@ You can now build requests with the following methods: `all`, `none`, `select`, 
     ```
 
 - [`having(expression)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/aggregatingrequest/having(_:)) applies conditions on grouped rows.
-    
+
     ```swift
     // SELECT team, MAX(score) FROM player GROUP BY team HAVING MIN(score) >= 1000
     Player
@@ -3803,7 +3805,7 @@ You can now build requests with the following methods: `all`, `none`, `select`, 
     ```
 
 - [`having(aggregate)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/derivablerequest/having(_:)) applies conditions on grouped rows, according to an [association aggregate](Documentation/AssociationsBasics.md#association-aggregates).
-    
+
     ```swift
     // SELECT team.*
     // FROM team
@@ -3814,55 +3816,55 @@ You can now build requests with the following methods: `all`, `none`, `select`, 
     ```
 
 - [`order(ordering, ...)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/orderedrequest/order(_:)-63rzl) sorts.
-    
+
     ```swift
     // SELECT * FROM player ORDER BY name
     Player.order(nameColumn)
-    
+
     // SELECT * FROM player ORDER BY score DESC, name
     Player.order(scoreColumn.desc, nameColumn)
     ```
-    
+
     SQLite considers NULL values to be smaller than any other values for sorting purposes. Hence, NULLs naturally appear at the beginning of an ascending ordering and at the end of a descending ordering. With a [custom SQLite build], this can be changed using `.ascNullsLast` and `.descNullsFirst`:
-    
+
     ```swift
     // SELECT * FROM player ORDER BY score ASC NULLS LAST
     Player.order(nameColumn.ascNullsLast)
     ```
-    
+
     Each `order` call clears any previous ordering:
-    
+
     ```swift
     // SELECT * FROM player ORDER BY name
     Player.order(scoreColumn).order(nameColumn)
     ```
 
 - [`reversed()`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/orderedrequest/reversed()) reverses the eventual orderings.
-    
+
     ```swift
     // SELECT * FROM player ORDER BY score ASC, name DESC
     Player.order(scoreColumn.desc, nameColumn).reversed()
     ```
-    
+
     If no ordering was already specified, this method has no effect:
-    
+
     ```swift
     // SELECT * FROM player
     Player.all().reversed()
     ```
 
 - [`limit(limit, offset: offset)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/queryinterfacerequest/limit(_:offset:)) limits and pages results.
-    
+
     ```swift
     // SELECT * FROM player LIMIT 5
     Player.limit(5)
-    
+
     // SELECT * FROM player LIMIT 5 OFFSET 10
     Player.limit(5, offset: 10)
     ```
 
 - [`joining(required:)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/joinablerequest/joining(required:)), [`joining(optional:)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/joinablerequest/joining(optional:)), [`including(required:)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/joinablerequest/including(required:)), [`including(optional:)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/joinablerequest/including(optional:)), and [`including(all:)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/joinablerequest/including(all:)) fetch and join records through [Associations].
-    
+
     ```swift
     // SELECT player.*, team.*
     // FROM player
@@ -3871,7 +3873,7 @@ You can now build requests with the following methods: `all`, `none`, `select`, 
     ```
 
 - [`with(cte)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/derivablerequest/with(_:)) embeds a [common table expression]:
-    
+
     ```swift
     // WITH ... SELECT * FROM player
     let cte = CommonTableExpression(...)
@@ -3879,33 +3881,33 @@ You can now build requests with the following methods: `all`, `none`, `select`, 
     ```
 
 - Other requests that involve the primary key:
-    
+
     - [`selectPrimaryKey(as:)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/queryinterfacerequest/selectprimarykey(as:)) selects the primary key.
-    
+
         ```swift
         // SELECT id FROM player
         Player.selectPrimaryKey(as: Int64.self)    // QueryInterfaceRequest<Int64>
-        
+
         // SELECT code FROM country
         Country.selectPrimaryKey(as: String.self)  // QueryInterfaceRequest<String>
-        
+
         // SELECT citizenId, countryCode FROM citizenship
         Citizenship.selectPrimaryKey(as: Row.self) // QueryInterfaceRequest<Row>
         ```
-        
+
     - [`orderByPrimaryKey()`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/tablerequest/orderbyprimarykey()) sorts by primary key.
-        
+
         ```swift
         // SELECT * FROM player ORDER BY id
         Player.orderByPrimaryKey()
-        
+
         // SELECT * FROM country ORDER BY code
         Country.orderByPrimaryKey()
-        
+
         // SELECT * FROM citizenship ORDER BY citizenId, countryCode
         Citizenship.orderByPrimaryKey()
         ```
-    
+
     - [`groupByPrimaryKey()`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/tablerequest/groupbyprimarykey()) groups rows by primary key.
 
 
@@ -4002,50 +4004,50 @@ Feed [requests](#requests) with SQL expressions built from your Swift code:
 GRDB comes with a Swift version of many SQLite [built-in operators](https://sqlite.org/lang_expr.html#operators), listed below. But not all: see [Embedding SQL in Query Interface Requests] for a way to add support for missing SQL operators.
 
 - `=`, `<>`, `<`, `<=`, `>`, `>=`, `IS`, `IS NOT`
-    
+
     Comparison operators are based on the Swift operators `==`, `!=`, `===`, `!==`, `<`, `<=`, `>`, `>=`:
-    
+
     ```swift
     // SELECT * FROM player WHERE (name = 'Arthur')
     Player.filter(nameColumn == "Arthur")
-    
+
     // SELECT * FROM player WHERE (name IS NULL)
     Player.filter(nameColumn == nil)
-    
+
     // SELECT * FROM player WHERE (score IS 1000)
     Player.filter(scoreColumn === 1000)
-    
+
     // SELECT * FROM rectangle WHERE width < height
     Rectangle.filter(widthColumn < heightColumn)
     ```
-    
+
     Subqueries are supported:
-    
+
     ```swift
     // SELECT * FROM player WHERE score = (SELECT max(score) FROM player)
     let maximumScore = Player.select(max(scoreColumn))
     Player.filter(scoreColumn == maximumScore)
-    
+
     // SELECT * FROM player WHERE score = (SELECT max(score) FROM player)
     let maximumScore = SQLRequest("SELECT max(score) FROM player")
     Player.filter(scoreColumn == maximumScore)
     ```
-    
+
     > **Note**: SQLite string comparison, by default, is case-sensitive and not Unicode-aware. See [string comparison](#string-comparison) if you need more control.
 
 - `*`, `/`, `+`, `-`
-    
+
     SQLite arithmetic operators are derived from their Swift equivalent:
-    
+
     ```swift
     // SELECT ((temperature * 1.8) + 32) AS fahrenheit FROM planet
     Planet.select((temperatureColumn * 1.8 + 32).forKey("fahrenheit"))
     ```
-    
+
     > **Note**: an expression like `nameColumn + "rrr"` will be interpreted by SQLite as a numerical addition (with funny results), not as a string concatenation. See the `concat` operator below.
-    
+
     When you want to join a sequence of expressions with the `+` or `*` operator, use `joined(operator:)`:
-    
+
     ```swift
     // SELECT score + bonus + 1000 FROM player
     let values = [
@@ -4054,44 +4056,44 @@ GRDB comes with a Swift version of many SQLite [built-in operators](https://sqli
         1000.databaseValue]
     Player.select(values.joined(operator: .add))
     ```
-    
+
     Note in the example above how you concatenate raw values: `1000.databaseValue`. A plain `1000` would not compile.
-    
+
     When the sequence is empty, `joined(operator: .add)` returns 0, and `joined(operator: .multiply)` returns 1.
 
 - `&`, `|`, `~`, `<<`, `>>`
-    
+
     Bitwise operations (bitwise and, or, not, left shift, right shift) are derived from their Swift equivalent:
-    
+
     ```swift
     // SELECT mask & 2 AS isRocky FROM planet
     Planet.select((Column("mask") & 2).forKey("isRocky"))
     ```
 
 - `||`
-    
+
     Concatenate several strings:
-    
+
     ```swift
     // SELECT firstName || ' ' || lastName FROM player
     Player.select([firstNameColumn, " ".databaseValue, lastNameColumn].joined(operator: .concat))
     ```
-    
+
     Note in the example above how you concatenate raw strings: `" ".databaseValue`. A plain `" "` would not compile.
-    
+
     When the sequence is empty, `joined(operator: .concat)` returns the empty string.
 
 - `AND`, `OR`, `NOT`
-    
+
     The SQL logical operators are derived from the Swift `&&`, `||` and `!`:
-    
+
     ```swift
     // SELECT * FROM player WHERE ((NOT verified) OR (score < 1000))
     Player.filter(!verifiedColumn || scoreColumn < 1000)
     ```
-    
+
     When you want to join a sequence of expressions with the `AND` or `OR` operator, use `joined(operator:)`:
-    
+
     ```swift
     // SELECT * FROM player WHERE (verified AND (score >= 1000) AND (name IS NOT NULL))
     let conditions = [
@@ -4100,55 +4102,55 @@ GRDB comes with a Swift version of many SQLite [built-in operators](https://sqli
         nameColumn != nil]
     Player.filter(conditions.joined(operator: .and))
     ```
-    
+
     When the sequence is empty, `joined(operator: .and)` returns true, and `joined(operator: .or)` returns false:
-    
+
     ```swift
     // SELECT * FROM player WHERE 1
     Player.filter([].joined(operator: .and))
-    
+
     // SELECT * FROM player WHERE 0
     Player.filter([].joined(operator: .or))
     ```
 
 - `BETWEEN`, `IN`, `NOT IN`
-    
+
     To check inclusion in a Swift sequence (array, set, range…), call the `contains` method:
-    
+
     ```swift
     // SELECT * FROM player WHERE id IN (1, 2, 3)
     Player.filter([1, 2, 3].contains(idColumn))
-    
+
     // SELECT * FROM player WHERE id NOT IN (1, 2, 3)
     Player.filter(![1, 2, 3].contains(idColumn))
-    
+
     // SELECT * FROM player WHERE score BETWEEN 0 AND 1000
     Player.filter((0...1000).contains(scoreColumn))
-    
+
     // SELECT * FROM player WHERE (score >= 0) AND (score < 1000)
     Player.filter((0..<1000).contains(scoreColumn))
-    
+
     // SELECT * FROM player WHERE initial BETWEEN 'A' AND 'N'
     Player.filter(("A"..."N").contains(initialColumn))
-    
+
     // SELECT * FROM player WHERE (initial >= 'A') AND (initial < 'N')
     Player.filter(("A"..<"N").contains(initialColumn))
     ```
-    
+
     To check inclusion inside a subquery, call the `contains` method as well:
-    
+
     ```swift
     // SELECT * FROM player WHERE id IN (SELECT playerId FROM playerSelection)
     let selectedPlayerIds = PlayerSelection.select(playerIdColumn)
     Player.filter(selectedPlayerIds.contains(idColumn))
-    
+
     // SELECT * FROM player WHERE id IN (SELECT playerId FROM playerSelection)
     let selectedPlayerIds = SQLRequest("SELECT playerId FROM playerSelection")
     Player.filter(selectedPlayerIds.contains(idColumn))
     ```
-    
+
     To check inclusion inside a [common table expression], call the `contains` method as well:
-    
+
     ```swift
     // WITH selectedName AS (...)
     // SELECT * FROM player WHERE name IN selectedName
@@ -4157,13 +4159,13 @@ GRDB comes with a Swift version of many SQLite [built-in operators](https://sqli
         .with(cte)
         .filter(cte.contains(nameColumn))
     ```
-    
+
     > **Note**: SQLite string comparison, by default, is case-sensitive and not Unicode-aware. See [string comparison](#string-comparison) if you need more control.
 
 - `EXISTS`, `NOT EXISTS`
-    
+
     To check if a subquery would return rows, call the `exists` method:
-    
+
     ```swift
     // Teams that have at least one other player
     //
@@ -4172,19 +4174,19 @@ GRDB comes with a Swift version of many SQLite [built-in operators](https://sqli
     let teamAlias = TableAlias()
     let player = Player.filter(Column("teamID") == teamAlias[Column("id")])
     let teams = Team.aliased(teamAlias).filter(player.exists())
-    
+
     // Teams that have no player
     //
     //  SELECT * FROM team
     //  WHERE NOT EXISTS (SELECT * FROM player WHERE teamID = team.id)
     let teams = Team.aliased(teamAlias).filter(!player.exists())
     ```
-    
+
     In the above example, you use a `TableAlias` in order to let a subquery refer to a column from another table.
-    
+
     In the next example, which involves the same table twice, the table alias requires an explicit disambiguation with `TableAlias(name:)`:
-    
-    ```swift    
+
+    ```swift
     // Players who coach at least one other player
     //
     //  SELECT coach.* FROM player coach
@@ -4193,75 +4195,75 @@ GRDB comes with a Swift version of many SQLite [built-in operators](https://sqli
     let coachedPlayer = Player.filter(Column("coachId") == coachAlias[Column("id")])
     let coaches = Player.aliased(coachAlias).filter(coachedPlayer.exists())
     ```
-    
+
     Finally, subqueries can also be expressed as SQL, with [SQL Interpolation]:
-    
+
     ```swift
     // SELECT coach.* FROM player coach
     // WHERE EXISTS (SELECT * FROM player WHERE coachId = coach.id)
     let coachedPlayer = SQLRequest("SELECT * FROM player WHERE coachId = \(coachAlias[Column("id")])")
     let coaches = Player.aliased(coachAlias).filter(coachedPlayer.exists())
     ```
-    
+
 - `LIKE`
-    
+
     The SQLite LIKE operator is available as the `like` method:
-    
+
     ```swift
     // SELECT * FROM player WHERE (email LIKE '%@example.com')
     Player.filter(emailColumn.like("%@example.com"))
-    
+
     // SELECT * FROM book WHERE (title LIKE '%10\%%' ESCAPE '\')
     Player.filter(emailColumn.like("%10\\%%", escape: "\\"))
     ```
-    
+
     > **Note**: the SQLite LIKE operator is case-insensitive but not Unicode-aware. For example, the expression `'a' LIKE 'A'` is true but `'æ' LIKE 'Æ'` is false.
 
 - `MATCH`
-    
+
     The full-text MATCH operator is available through [FTS3Pattern](Documentation/FullTextSearch.md#fts3pattern) (for FTS3 and FTS4 tables) and [FTS5Pattern](Documentation/FullTextSearch.md#fts5pattern) (for FTS5):
-    
+
     FTS3 and FTS4:
-    
+
     ```swift
     let pattern = FTS3Pattern(matchingAllTokensIn: "SQLite database")
-    
+
     // SELECT * FROM document WHERE document MATCH 'sqlite database'
     Document.matching(pattern)
-    
+
     // SELECT * FROM document WHERE content MATCH 'sqlite database'
     Document.filter(contentColumn.match(pattern))
     ```
-    
+
     FTS5:
-    
+
     ```swift
     let pattern = FTS5Pattern(matchingAllTokensIn: "SQLite database")
-    
+
     // SELECT * FROM document WHERE document MATCH 'sqlite database'
     Document.matching(pattern)
     ```
 - `AS`
-    
+
     To give an alias to an expression, use the `forKey` method:
-    
+
     ```swift
     // SELECT (score + bonus) AS total
     // FROM player
     Player.select((Column("score") + Column("bonus")).forKey("total"))
     ```
-    
+
     If you need to refer to this aliased column in another place of the request, use a detached column:
-    
+
     ```swift
     // SELECT (score + bonus) AS total
-    // FROM player 
+    // FROM player
     // ORDER BY total
     Player
         .select((Column("score") + Column("bonus")).forKey("total"))
         .order(Column("total").detached)
     ```
-    
+
     Unlike `Column("total")`, the detached column `Column("total").detached` is never associated to the "player" table, so it is always rendered as `total` in the generated SQL, even when the request involves other tables via an [association](Documentation/AssociationsBasics.md) or a [common table expression].
 
 
@@ -4272,23 +4274,23 @@ GRDB comes with a Swift version of many SQLite [built-in operators](https://sqli
 GRDB comes with a Swift version of many SQLite [built-in functions](https://sqlite.org/lang_corefunc.html), listed below. But not all: see [Embedding SQL in Query Interface Requests] for a way to add support for missing SQL functions.
 
 - `ABS`, `AVG`, `COUNT`, `DATETIME`, `JULIANDAY`, `LENGTH`, `MAX`, `MIN`, `SUM`, `TOTAL`:
-    
+
     Those are based on the `abs`, `average`, `count`, `dateTime`, `julianDay`, `length`, `max`, `min`, `sum` and `total` Swift functions:
-    
+
     ```swift
     // SELECT MIN(score), MAX(score) FROM player
     Player.select(min(scoreColumn), max(scoreColumn))
-    
+
     // SELECT COUNT(name) FROM player
     Player.select(count(nameColumn))
-    
+
     // SELECT COUNT(DISTINCT name) FROM player
     Player.select(count(distinct: nameColumn))
-    
+
     // SELECT JULIANDAY(date, 'start of year') FROM game
     Game.select(julianDay(dateColumn, .startOfYear))
     ```
-    
+
     For more information about the functions `dateTime` and `julianDay`, see [Date And Time Functions](https://www.sqlite.org/lang_datefunc.html).
 
 - `CAST`
@@ -4303,27 +4305,27 @@ GRDB comes with a Swift version of many SQLite [built-in functions](https://sqli
     See [CAST expressions](https://www.sqlite.org/lang_expr.html#castexpr) for more information about SQLite conversions.
 
 - `IFNULL`
-    
+
     Use the Swift `??` operator:
-    
+
     ```swift
     // SELECT IFNULL(name, 'Anonymous') FROM player
     Player.select(nameColumn ?? "Anonymous")
-    
+
     // SELECT IFNULL(name, email) FROM player
     Player.select(nameColumn ?? emailColumn)
     ```
 
 - `LOWER`, `UPPER`
-    
+
     The query interface does not give access to those SQLite functions. Nothing against them, but they are not unicode aware.
-    
+
     Instead, GRDB extends SQLite with SQL functions that call the Swift built-in string functions `capitalized`, `lowercased`, `uppercased`, `localizedCapitalized`, `localizedLowercased` and `localizedUppercased`:
-    
+
     ```swift
     Player.select(nameColumn.uppercased())
     ```
-    
+
     > **Note**: When *comparing* strings, you'd rather use a [collation](#string-comparison):
     >
     > ```swift
@@ -4337,12 +4339,12 @@ GRDB comes with a Swift version of many SQLite [built-in functions](https://sqli
     > ```
 
 - Custom SQL functions and aggregates
-    
+
     You can apply your own [custom SQL functions and aggregates](#custom-functions-):
-    
+
     ```swift
     let f = DatabaseFunction("f", ...)
-    
+
     // SELECT f(name) FROM player
     Player.select(f.apply(nameColumn))
     ```
@@ -4370,114 +4372,114 @@ LIMIT ...    -- 9
 2. `SELECT ...`
 
     The selection can be provided as raw SQL:
-    
+
     ```swift
     // SELECT IFNULL(name, 'O''Brien'), score FROM player
     let request = Player.select(sql: "IFNULL(name, 'O''Brien'), score")
-    
+
     // SELECT IFNULL(name, 'O''Brien'), score FROM player
     let defaultName = "O'Brien"
     let request = Player.select(sql: "IFNULL(name, ?), score", arguments: [suffix])
     ```
 
     The selection can be provided with [SQL Interpolation]:
-    
+
     ```swift
     // SELECT IFNULL(name, 'O''Brien'), score FROM player
     let defaultName = "O'Brien"
     let request = Player.select(literal: "IFNULL(name, \(defaultName)), score")
     ```
-    
+
     The selection can be provided with a mix of Swift and [SQL Interpolation]:
-    
+
     ```swift
     // SELECT IFNULL(name, 'O''Brien') AS displayName, score FROM player
     let defaultName = "O'Brien"
     let displayName: SQL = "IFNULL(\(Column("name")), \(defaultName)) AS displayName"
     let request = Player.select(displayName, Column("score"))
     ```
-    
+
     When the custom SQL snippet should behave as a full-fledged expression, with support for the `+` Swift operator, the `forKey` aliasing method, and all other [SQL Operators](#sql-operators), build an _expression literal_ with the `SQL.sqlExpression` method:
-    
+
     ```swift
     // SELECT IFNULL(name, 'O''Brien') AS displayName, score FROM player
     let defaultName = "O'Brien"
     let displayName = SQL("IFNULL(\(Column("name")), \(defaultName))").sqlExpression
     let request = Player.select(displayName.forKey("displayName"), Column("score"))
     ```
-    
+
     Such expression literals allow you to build a reusable support library of SQL functions or operators that are missing from the query interface. For example, you can define a Swift `date` function:
-    
+
     ```swift
     func date(_ value: some SQLSpecificExpressible) -> SQLExpression {
         SQL("DATE(\(value))").sqlExpression
     }
-    
+
     // SELECT * FROM "player" WHERE DATE("createdAt") = '2020-01-23'
     let request = Player.filter(date(Column("createdAt")) == "2020-01-23")
     ```
-    
+
     See the [Query Interface Organization] for more information about `SQLSpecificExpressible` and `SQLExpression`.
-    
+
 3. `FROM ...`: only one table is supported here. You can not customize this SQL part.
 
 4. `JOIN ...`: joins are fully controlled by [Associations]. You can not customize this SQL part.
 
 5. `WHERE ...`
-    
+
     The WHERE clause can be provided as raw SQL:
-    
+
     ```swift
     // SELECT * FROM player WHERE score >= 1000
     let request = Player.filter(sql: "score >= 1000")
-    
+
     // SELECT * FROM player WHERE score >= 1000
     let minScore = 1000
     let request = Player.filter(sql: "score >= ?", arguments: [minScore])
     ```
 
     The WHERE clause can be provided with [SQL Interpolation]:
-    
+
     ```swift
     // SELECT * FROM player WHERE score >= 1000
     let minScore = 1000
     let request = Player.filter(literal: "score >= \(minScore)")
     ```
-    
+
     The WHERE clause can be provided with a mix of Swift and [SQL Interpolation]:
-    
+
     ```swift
     // SELECT * FROM player WHERE (score >= 1000) AND (team = 'red')
     let minScore = 1000
     let scoreCondition: SQL = "\(Column("score")) >= \(minScore)"
     let request = Player.filter(scoreCondition && Column("team") == "red")
     ```
-    
+
     See `SELECT ...` above for more SQL Interpolation examples.
-    
+
 6. `GROUP BY ...`
 
     The GROUP BY clause can be provided as raw SQL, SQL Interpolation, or a mix of Swift and SQL Interpolation, just as the selection and the WHERE clause (see above).
-    
+
 7. `HAVING ...`
 
     The HAVING clause can be provided as raw SQL, SQL Interpolation, or a mix of Swift and SQL Interpolation, just as the selection and the WHERE clause (see above).
-    
+
 8. `ORDER BY ...`
 
     The ORDER BY clause can be provided as raw SQL, SQL Interpolation, or a mix of Swift and SQL Interpolation, just as the selection and the WHERE clause (see above).
-    
+
     In order to support the `desc` and `asc` query interface operators, and the `reversed()` query interface method, you must provide your orderings as _expression literals_ with the `SQL.sqlExpression` method:
-    
+
     ```swift
-    // SELECT * FROM "player" 
+    // SELECT * FROM "player"
     // ORDER BY (score + bonus) ASC, name DESC
     let total = SQL("(score + bonus)").sqlExpression
     let request = Player
         .order(total.desc, Column("name"))
         .reversed()
     ```
-    
+
 9. `LIMIT ...`: use the `limit(_:offset:)` method. You can not customize this SQL part.
 
 
@@ -4524,29 +4526,29 @@ let maxScore = row[1] as Int?
 You can also change the request so that it knows the type it has to fetch:
 
 - With `asRequest(of:)`, useful when you use [Associations]:
-    
+
     ```swift
     struct BookInfo: FetchableRecord, Decodable {
         var book: Book
         var author: Author
     }
-    
+
     // A request of BookInfo
     let request = Book
         .including(required: Book.author)
         .asRequest(of: BookInfo.self)
-    
+
     let bookInfos = try dbQueue.read { db in
         try request.fetchAll(db) // [BookInfo]
     }
     ```
-    
+
 - With `select(..., as:)`, which is handy when you change the selection:
-    
+
     ```swift
     // A request of Int
     let request = Player.select(max(scoreColumn), as: Int.self)
-    
+
     let maxScore = try dbQueue.read { db in
         try request.fetchOne(db) // Int?
     }
@@ -4733,9 +4735,9 @@ try Document.deleteOne(db, id: 1)             // Document?
 
 ```swift
 // UPDATE player SET score = 0, isHealthy = 1, bonus = NULL
-try Player.updateAll(db, 
-    Column("score").set(to: 0), 
-    Column("isHealthy").set(to: true), 
+try Player.updateAll(db,
+    Column("score").set(to: 0),
+    Column("isHealthy").set(to: true),
     Column("bonus").set(to: nil))
 
 // UPDATE player SET score = 0 WHERE team = 'red'
@@ -4820,7 +4822,7 @@ try Player.customRequest().fetchAll(db) // [Player]
 **To build custom requests**, you can use one of the built-in requests or derive requests from other requests.
 
 - [SQLRequest] is a fetch request built from raw SQL. For example:
-    
+
     ```swift
     extension Player {
         static func filter(color: Color) -> SQLRequest<Player> {
@@ -4829,13 +4831,13 @@ try Player.customRequest().fetchAll(db) // [Player]
                 arguments: [color])
         }
     }
-    
+
     // [Player]
     try Player.filter(color: .red).fetchAll(db)
     ```
-    
+
     SQLRequest supports [SQL Interpolation]:
-    
+
     ```swift
     extension Player {
         static func filter(color: Color) -> SQLRequest<Player> {
@@ -4843,7 +4845,7 @@ try Player.customRequest().fetchAll(db) // [Player]
         }
     }
     ```
-    
+
 - The [`asRequest(of:)`](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/queryinterfacerequest/asrequest(of:)) method changes the type fetched by the request. It is useful, for example, when you use [Associations]:
 
     ```swift
@@ -4851,11 +4853,11 @@ try Player.customRequest().fetchAll(db) // [Player]
         var book: Book
         var author: Author
     }
-    
+
     let request = Book
         .including(required: Book.author)
         .asRequest(of: BookInfo.self)
-    
+
     // [BookInfo]
     try request.fetchAll(db)
     ```
@@ -5063,7 +5065,7 @@ config.prepareDatabase { db in
     ... // Carefully dispose passphrase bytes
     guard code == SQLITE_OK else {
         throw DatabaseError(
-            resultCode: ResultCode(rawValue: code), 
+            resultCode: ResultCode(rawValue: code),
             message: db.lastErrorMessage)
     }
 }
@@ -5246,7 +5248,7 @@ try dbQueue.write { db in
     try db.execute(
         sql: "UPDATE students SET name = ? WHERE id = ?",
         arguments: [name, id])
-    
+
     // Just as good
     try db.execute(
         sql: "UPDATE students SET name = :name WHERE id = :id",
@@ -5293,21 +5295,21 @@ do {
 } catch let error as DatabaseError {
     // The SQLite error code: 19 (SQLITE_CONSTRAINT)
     error.resultCode
-    
+
     // The extended error code: 787 (SQLITE_CONSTRAINT_FOREIGNKEY)
     error.extendedResultCode
-    
+
     // The eventual SQLite message: FOREIGN KEY constraint failed
     error.message
-    
+
     // The eventual erroneous SQL query
     // "INSERT INTO pet (masterId, name) VALUES (?, ?)"
     error.sql
-    
+
     // The eventual SQL arguments
     // [1, "Bobby"]
     error.arguments
-    
+
     // Full error description
     // > SQLite error 19: FOREIGN KEY constraint failed -
     // > while executing `INSERT INTO pet (masterId, name) VALUES (?, ?)`
@@ -5387,30 +5389,30 @@ do {
 They uncover programmer errors, false assumptions, and prevent misuses. Here are a few examples:
 
 - **The code asks for a non-optional value, when the database contains NULL:**
-    
+
     ```swift
     // fatal error: could not convert NULL to String.
     let name: String = row["name"]
     ```
-    
+
     Solution: fix the contents of the database, use [NOT NULL constraints](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/columndefinition/notnull(onconflict:)), or load an optional:
-    
+
     ```swift
     let name: String? = row["name"]
     ```
 
 - **Conversion from database value to Swift type fails:**
-    
+
     ```swift
     // fatal error: could not convert "Mom’s birthday" to Date.
     let date: Date = row["date"]
-    
+
     // fatal error: could not convert "" to URL.
     let url: URL = row["url"]
     ```
-    
+
     Solution: fix the contents of the database, or use [DatabaseValue](#databasevalue) to handle all possible cases:
-    
+
     ```swift
     let dbValue: DatabaseValue = row["date"]
     if dbValue.isNull {
@@ -5428,15 +5430,15 @@ They uncover programmer errors, false assumptions, and prevent misuses. Here are
     // fatal error: table player has no unique index on column email
     try Player.deleteOne(db, key: ["email": "arthur@example.com"])
     ```
-    
+
     Solution: add a unique index to the player.email column, or use the `deleteAll` method to make it clear that you may delete more than one row:
-    
+
     ```swift
     try Player.filter(Column("email") == "arthur@example.com").deleteAll(db)
     ```
 
 - **Database connections are not reentrant:**
-    
+
     ```swift
     // fatal error: Database methods are not reentrant.
     dbQueue.write { db in
@@ -5445,7 +5447,7 @@ They uncover programmer errors, false assumptions, and prevent misuses. Here are
         }
     }
     ```
-    
+
     Solution: avoid reentrancy, and instead pass a database connection along.
 
 
@@ -5478,7 +5480,7 @@ In such a situation, you can still avoid fatal errors by exposing and handling e
 if let arguments = StatementArguments(arguments) {
     let statement = try db.makeStatement(sql: sql)
     try statement.setArguments(arguments)
-    
+
     var cursor = try Row.fetchCursor(statement)
     while let row = try iterator.next() {
         // Untrusted database content
@@ -5560,12 +5562,12 @@ GRDB comes with five extra collations that leverage unicode-aware comparisons ba
 - `localizedStandardCompare`
 
 A collation can be applied to a table column. All comparisons involving this column will then automatically trigger the comparison function:
-    
+
 ```swift
 try db.create(table: "player") { t in
     // Guarantees case-insensitive email unicity
     t.column("email", .text).unique().collate(.nocase)
-    
+
     // Sort names in a localized case insensitive way
     t.column("name", .text).collate(.localizedCaseInsensitiveCompare)
 }
@@ -5706,7 +5708,7 @@ The sample code below creates or opens a database file inside its dedicated dire
 let fileManager = FileManager.default
 let appSupportURL = try fileManager.url(
     for: .applicationSupportDirectory, in: .userDomainMask,
-    appropriateFor: nil, create: true) 
+    appropriateFor: nil, create: true)
 let directoryURL = appSupportURL.appendingPathComponent("MyDatabase", isDirectory: true)
 try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
 
@@ -5727,13 +5729,13 @@ if let dbPath = Bundle.main.path(forResource: "db", ofType: "sqlite")
 
 if let dbPath {
     // If the resource exists, open a read-only connection.
-    // Writes are disallowed because resources can not be modified. 
+    // Writes are disallowed because resources can not be modified.
     var config = Configuration()
     config.readonly = true
     let dbQueue = try DatabaseQueue(path: dbPath, configuration: config)
 } else {
     // The database resource can not be found.
-    // Fix your setup, or report the problem to the user. 
+    // Fix your setup, or report the problem to the user.
 }
 ```
 
@@ -5801,7 +5803,7 @@ config.prepareDatabase { db in
     db.trace(options: .profile) { event in
         // Prints all SQL statements with their duration
         print(event)
-        
+
         // Access to detailed profiling information
         if case let .profile(statement, duration) = event, duration > 0.5 {
             print("Slow query: \(statement.sql)")
@@ -5860,7 +5862,7 @@ And then we can write our request and only fetch books that have an author, disc
 
 ```swift
 let books: [Book] = try dbQueue.read { db in
-    // SELECT book.* FROM book 
+    // SELECT book.* FROM book
     // JOIN author ON author.id = book.authorID
     let request = Book.joining(required: Book.author)
     return try request.fetchAll(db)
@@ -5935,7 +5937,7 @@ And then we can write our request and the ad-hoc record that decodes it:
 struct BookInfo: Decodable, FetchableRecord {
     var book: Book
     var authorName: String? // nil when the book is anonymous
-    
+
     static func all() -> QueryInterfaceRequest<BookInfo> {
         // SELECT book.*, author.name AS authorName
         // FROM book
@@ -6024,7 +6026,7 @@ If after all those steps (thanks you!), your observation is still failing you, p
 - [SQLite error 21 "wrong number of statement arguments" with LIKE queries](#sqlite-error-21-wrong-number-of-statement-arguments-with-like-queries)
 
 ### Generic parameter 'T' could not be inferred
-    
+
 You may get this error when using the `read` and `write` methods of database queues and pools:
 
 ```swift
@@ -6091,38 +6093,38 @@ However, sometimes this error only happens when an app runs on a recent operatin
 When this is the case, there are two possible explanations:
 
 1. Maybe a column name is *really* misspelled or missing from the database schema.
-    
+
     To find it, check the SQL statement that comes with the [DatabaseError](#databaseerror).
 
-2. Maybe the application is using the character `"` instead of the single quote `'` as the delimiter for string literals in raw SQL queries. Recent versions of SQLite have learned to tell about this deviation from the SQL standard, and this is why you are seeing this error. 
-    
+2. Maybe the application is using the character `"` instead of the single quote `'` as the delimiter for string literals in raw SQL queries. Recent versions of SQLite have learned to tell about this deviation from the SQL standard, and this is why you are seeing this error.
+
     For example: this is not standard SQL: `UPDATE player SET name = "Arthur"`.
-    
+
     The standard version is: `UPDATE player SET name = 'Arthur'`.
-    
+
     It just happens that old versions of SQLite used to accept the former, non-standard version. Newer versions are able to reject it with an error.
-    
+
     The fix is to change the SQL statements run by the application: replace `"` with `'` in your string literals.
-    
+
     It may also be time to learn about statement arguments and [SQL injection](#avoiding-sql-injection):
-    
+
     ```swift
     let name: String = ...
-    
+
     // NOT STANDARD (double quote)
     try db.execute(sql: """
         UPDATE player SET name = "\(name)"
         """)
-    
+
     // STANDARD, BUT STILL NOT RECOMMENDED (single quote)
     try db.execute(sql: "UPDATE player SET name = '\(name)'")
-    
+
     // STANDARD, AND RECOMMENDED (statement arguments)
     try db.execute(sql: "UPDATE player SET name = ?", arguments: [name])
     ```
-    
+
 For more information, see [Double-quoted String Literals Are Accepted](https://sqlite.org/quirks.html#double_quoted_string_literals_are_accepted), and [Configuration.acceptsDoubleQuotedStringLiterals](https://swiftpackageindex.com/groue/grdb.swift/documentation/grdb/configuration/acceptsdoublequotedstringliterals).
-    
+
 
 
 ### SQLite error 10 "disk I/O error", SQLite error 23 "not authorized"
@@ -6400,3 +6402,4 @@ This chapter has been superseded by [ValueObservation] and [DatabaseRegionObserv
 [Database Connections]: #database-connections
 [Database connections]: #database-connections
 [database connection]: #database-connections
+[Build for windows]: Documentation/BuildForWindows.md
