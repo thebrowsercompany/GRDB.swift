@@ -1,14 +1,15 @@
+#if !os(Linux) && !os(Windows)
 import XCTest
 import GRDB
 
 class FoundationNSNumberTests: GRDBTestCase {
-    
+
     func testNSNumberDatabaseValueToSwiftType() {
         enum Storage {
             case integer
             case double
         }
-        
+
         func storage(_ n: NSNumber) -> Storage? {
             switch n.databaseValue.storage {
             case .int64:
@@ -19,7 +20,7 @@ class FoundationNSNumberTests: GRDBTestCase {
                 return nil
             }
         }
-        
+
         // case "c":
         do {
             let number = NSNumber(value: Int8.min + 1)
@@ -27,7 +28,7 @@ class FoundationNSNumberTests: GRDBTestCase {
             XCTAssertEqual(storage(number), .integer)
             XCTAssertEqual(Int64.fromDatabaseValue(number.databaseValue), Int64(Int8.min + 1))
         }
-        
+
         // case "C":
         do {
             let number = NSNumber(value: UInt8.max - 1)
@@ -35,7 +36,7 @@ class FoundationNSNumberTests: GRDBTestCase {
             XCTAssertEqual(storage(number), .integer)
             XCTAssertEqual(Int64.fromDatabaseValue(number.databaseValue), Int64(UInt8.max - 1))
         }
-        
+
         // case "s":
         do {
             let number = NSNumber(value: Int16.min + 1)
@@ -43,7 +44,7 @@ class FoundationNSNumberTests: GRDBTestCase {
             XCTAssertEqual(storage(number), .integer)
             XCTAssertEqual(Int64.fromDatabaseValue(number.databaseValue), Int64(Int16.min + 1))
         }
-        
+
         // case "S":
         do {
             let number = NSNumber(value: UInt16.max - 1)
@@ -51,7 +52,7 @@ class FoundationNSNumberTests: GRDBTestCase {
             XCTAssertEqual(storage(number), .integer)
             XCTAssertEqual(Int64.fromDatabaseValue(number.databaseValue), Int64(UInt16.max - 1))
         }
-        
+
         // case "i":
         do {
             let number = NSNumber(value: Int32.min + 1)
@@ -59,7 +60,7 @@ class FoundationNSNumberTests: GRDBTestCase {
             XCTAssertEqual(storage(number), .integer)
             XCTAssertEqual(Int64.fromDatabaseValue(number.databaseValue), Int64(Int32.min + 1))
         }
-        
+
         // case "I":
         do {
             let number = NSNumber(value: UInt32.max - 1)
@@ -67,7 +68,7 @@ class FoundationNSNumberTests: GRDBTestCase {
             XCTAssertEqual(storage(number), .integer)
             XCTAssertEqual(Int64.fromDatabaseValue(number.databaseValue), Int64(UInt32.max - 1))
         }
-        
+
         // case "l":
         do {
             let number = NSNumber(value: Int.min + 1)
@@ -75,7 +76,7 @@ class FoundationNSNumberTests: GRDBTestCase {
             XCTAssertEqual(storage(number), .integer)
             XCTAssertEqual(Int64.fromDatabaseValue(number.databaseValue), Int64(Int.min + 1))
         }
-        
+
         // case "L":
         do {
             let number = NSNumber(value: UInt(UInt32.max))
@@ -83,7 +84,7 @@ class FoundationNSNumberTests: GRDBTestCase {
             XCTAssertEqual(storage(number), .integer)
             XCTAssertEqual(Int64.fromDatabaseValue(number.databaseValue), Int64(UInt32.max))
         }
-        
+
         // case "q":
         do {
             let number = NSNumber(value: Int64.min + 1)
@@ -91,7 +92,7 @@ class FoundationNSNumberTests: GRDBTestCase {
             XCTAssertEqual(storage(number), .integer)
             XCTAssertEqual(Int64.fromDatabaseValue(number.databaseValue), Int64(Int64.min + 1))
         }
-        
+
         // case "Q":
         do {
             let number = NSNumber(value: UInt64(Int64.max))
@@ -99,7 +100,7 @@ class FoundationNSNumberTests: GRDBTestCase {
             XCTAssertEqual(storage(number), .integer)
             XCTAssertEqual(Int64.fromDatabaseValue(number.databaseValue), Int64.max)
         }
-        
+
         // case "f":
         do {
             let number = NSNumber(value: Float(3))
@@ -107,7 +108,7 @@ class FoundationNSNumberTests: GRDBTestCase {
             XCTAssertEqual(storage(number), .double)
             XCTAssertEqual(Float.fromDatabaseValue(number.databaseValue), Float(3))
         }
-        
+
         // case "d":
         do {
             let number = NSNumber(value: 10.0)
@@ -115,7 +116,7 @@ class FoundationNSNumberTests: GRDBTestCase {
             XCTAssertEqual(storage(number), .double)
             XCTAssertEqual(Double.fromDatabaseValue(number.databaseValue), 10.0)
         }
-        
+
         // case "B":
         do {
             let number = NSNumber(value: true)
@@ -123,7 +124,7 @@ class FoundationNSNumberTests: GRDBTestCase {
             XCTAssertEqual(storage(number), .integer)
             XCTAssertEqual(Bool.fromDatabaseValue(number.databaseValue), true)
         }
-        
+
         do {
             let number = NSNumber(value: false)
             XCTAssertEqual(String(cString: number.objCType), "c")
@@ -131,7 +132,7 @@ class FoundationNSNumberTests: GRDBTestCase {
             XCTAssertEqual(Bool.fromDatabaseValue(number.databaseValue), false)
         }
     }
-    
+
     func testNSNumberDatabaseRoundTrip() throws {
         let dbQueue = try makeDatabaseQueue()
         func roundTrip(_ value: NSNumber) throws -> Bool {
@@ -141,11 +142,11 @@ class FoundationNSNumberTests: GRDBTestCase {
             }
             return back == value
         }
-        
+
         XCTAssertTrue(try roundTrip(NSNumber(value: Int32.min + 1)))
         XCTAssertTrue(try roundTrip(NSNumber(value: Double(10000000.01))))
     }
-    
+
     func testNSNumberDatabaseValueRoundTrip() {
         func roundTrip(_ value: NSNumber) -> Bool
         {
@@ -157,11 +158,11 @@ class FoundationNSNumberTests: GRDBTestCase {
             }
             return back.isEqual(to: value)
         }
-        
+
         XCTAssertTrue(roundTrip(NSNumber(value: Int32.min + 1)))
         XCTAssertTrue(roundTrip(NSNumber(value: Double(10000000.01))))
     }
-    
+
     func testNSNumberFromDatabaseValueFailure() {
         let databaseValue_Null = DatabaseValue.null
         let databaseValue_String = "foo".databaseValue
@@ -170,7 +171,7 @@ class FoundationNSNumberTests: GRDBTestCase {
         XCTAssertNil(NSNumber.fromDatabaseValue(databaseValue_String))
         XCTAssertNil(NSNumber.fromDatabaseValue(databaseValue_Blob))
     }
-    
+
     func testNSNumberDecodingFromText() throws {
         func test(_ value: String, isDecodedAs number: NSDecimalNumber) throws {
             let decodedFromDatabaseValue = NSNumber.fromDatabaseValue(value.databaseValue) as? NSDecimalNumber
@@ -192,3 +193,4 @@ class FoundationNSNumberTests: GRDBTestCase {
         try test("18446744073709551615", isDecodedAs: NSDecimalNumber(value: UInt64(18446744073709551615)))
     }
 }
+#endif

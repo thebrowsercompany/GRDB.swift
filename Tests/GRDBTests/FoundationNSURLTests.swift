@@ -1,3 +1,4 @@
+#if !os(Linux) && !os(Windows)
 import XCTest
 import GRDB
 
@@ -46,3 +47,4 @@ class FoundationNSURLTests: GRDBTestCase {
     }
     
 }
+#endif

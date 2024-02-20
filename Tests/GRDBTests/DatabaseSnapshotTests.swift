@@ -1,3 +1,4 @@
+#if !os(Linux) && !os(Windows)
 import XCTest
 @testable import GRDB
 
@@ -432,3 +433,4 @@ class DatabaseSnapshotTests: GRDBTestCase {
         }
     }
 }
+#endif

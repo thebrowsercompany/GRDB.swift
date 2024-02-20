@@ -1,3 +1,4 @@
+#if !os(Linux) && !os(Windows)
 import XCTest
 import GRDB
 
@@ -1034,3 +1035,4 @@ class DatabaseMigratorTests : GRDBTestCase {
         } catch DatabaseError.SQLITE_CONSTRAINT_FOREIGNKEY { }
     }
 }
+#endif

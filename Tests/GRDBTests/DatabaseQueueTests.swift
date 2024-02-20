@@ -122,6 +122,7 @@ class DatabaseQueueTests: GRDBTestCase {
         }
     }
     
+    #if !os(Linux) && !os(Windows)
     func testDefaultLabel() throws {
         let dbQueue = try makeDatabaseQueue()
         XCTAssertEqual(dbQueue.configuration.label, nil)
@@ -150,7 +151,8 @@ class DatabaseQueueTests: GRDBTestCase {
             XCTAssertEqual(label, "Toreador")
         }
     }
-    
+    #endif
+
     func testTargetQueue() throws {
         func test(targetQueue: DispatchQueue) throws {
             dbConfiguration.targetQueue = targetQueue
@@ -220,6 +222,7 @@ class DatabaseQueueTests: GRDBTestCase {
         try test(targetQueue: .global(qos: .background), writeTargetQueue: DispatchQueue(label: "writer"))
     }
 
+    #if !os(Linux) && !os(Windows)
     func testQoS() throws {
         func test(qos: DispatchQoS) throws {
             // https://forums.swift.org/t/what-is-the-default-target-queue-for-a-serial-queue/18094/5
@@ -257,6 +260,7 @@ class DatabaseQueueTests: GRDBTestCase {
         try test(qos: .background)
         try test(qos: .userInitiated)
     }
+    #endif
     
     // MARK: - SQLITE_BUSY prevention
     

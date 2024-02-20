@@ -1,3 +1,4 @@
+#if !os(Linux) && !os(Windows)
 import XCTest
 import Dispatch
 import Foundation
@@ -1416,3 +1417,4 @@ class DatabasePoolConcurrencyTests: GRDBTestCase {
         }
     }
 }
+#endif

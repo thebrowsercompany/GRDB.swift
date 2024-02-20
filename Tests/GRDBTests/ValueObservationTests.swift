@@ -1,3 +1,4 @@
+#if !os(Linux) && !os(Windows)
 import XCTest
 import Dispatch
 @testable import GRDB
@@ -1298,3 +1299,4 @@ class ValueObservationTests: GRDBTestCase {
                 })
     }
 }
+#endif

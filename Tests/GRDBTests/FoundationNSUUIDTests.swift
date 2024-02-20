@@ -1,3 +1,4 @@
+#if !os(Linux) && !os(Windows)
 import XCTest
 import GRDB
 
@@ -50,3 +51,4 @@ class FoundationNSUUIDTests: GRDBTestCase {
         try assert("abcdefghijklmnopq".data(using: .utf8)!, isDecodedAs: nil)
     }
 }
+#endif
