@@ -116,7 +116,7 @@ build_sqlcipher() {
 	eval pushd "$sqlcipher_dir" "$mute" || { echo "pushd failed"; exit 1; }
 
 	printf '%s' "Configuring SQLCipher ... "
-	eval ./configure --with-crypto-lib=none "$mute"
+	eval ./configure "$mute"
 	echo "✅"
 
 	printf '%s' "Building SQLCipher ... "
@@ -144,9 +144,8 @@ patch_grdb() {
 
 	printf '%s' "Patching GRDB ... "
 	: > "${grdb_dir}/GRDB/Export.swift"
-	# echo '#import "sqlite3.h"' > "${grdb_dir}/Support/GRDB-Bridging.h"
 	echo "#include \"${grdb_dir}/SQLCipher.xcconfig\"" >> "${grdb_dir}/Support/GRDBDeploymentTarget.xcconfig"
-	# sed -i -E 's/<sqlite3.h>/"sqlite3.h"/' "${grdb_dir}/Support/grdb_config.h"
+	find "$grdb_dir" . -name "*.swift" -type f -exec sed -i '' 's/import SQLCipher/\/\/ import SQLCipher/g' {} +
 
 	if patch -s -p1 -f -d "$grdb_dir" < "$patch_file"; then
 		echo "✅"
