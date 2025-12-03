@@ -348,7 +348,7 @@ update_swift_package() {
 make_release() {
 	echo "Making ${new_version} release ... 🚢"
 
-	local commit_message="DuckDuckGo GRDB.swift ${new_version} (GRDB ${upstream_version}, SQLCipher ${sqlcipher_version})"
+	local commit_message="GRDB.swift ${new_version} (GRDB ${upstream_version}, SQLCipher ${sqlcipher_version})"
 
 	git add "${cwd}/README.md" "${cwd}/Package.swift" "${cwd}/assets/xcodeproj.patch"
 	git commit -m "$commit_message"
