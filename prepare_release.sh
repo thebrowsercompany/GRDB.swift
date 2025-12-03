@@ -178,6 +178,12 @@ patch_grdb() {
 	fi
 }
 
+patch_grdb_headers() {
+	printf '%s' "Updating grdb_config.h to use bundled sqlite ... "
+	find "$grdb_dir" -name "grdb_config.h" -type f -exec sed -i '' 's#<sqlite3.h>#<GRDB/sqlite3.h>#' {} +
+	echo "✅"
+}
+
 add_sqlite_import_to_umbrella() {
 	local umbrella_header
 
@@ -288,6 +294,11 @@ build_archive() {
 	fi
 }
 
+clean_xcframework_metadata() {
+	local xcframework_path=$1
+	find "$xcframework_path" -name '._*' -delete
+}
+
 build_xcframework() {
 	local derived_data="${workdir}/DerivedData"
 	local xcframework="${workdir}/GRDB.xcframework"
@@ -315,10 +326,14 @@ build_xcframework() {
 		-output "${xcframework}" >/dev/null 2>&1
 	popd >/dev/null 2>&1
 	echo "✅"
+
+	printf '%s' "Cleaning metadata ... "
+	clean_xcframework_metadata "$xcframework"
+	echo "✅"
 	
 	printf '%s' "Compressing XCFramework ... "
 	rm -rf "$xcframework_zip"
-	ditto -c -k --keepParent "$xcframework" "$xcframework_zip"
+	ditto --noextattr --norsrc -c -k --keepParent "$xcframework" "$xcframework_zip"
 	echo "✅"
 }
 
@@ -359,6 +374,7 @@ main() {
 	update_readme
 	build_sqlcipher
 	patch_grdb
+	patch_grdb_headers
 	build_and_test_release
 	add_sqlite_import_to_umbrella
 	build_xcframework
