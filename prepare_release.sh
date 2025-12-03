@@ -178,6 +178,38 @@ patch_grdb() {
 	fi
 }
 
+add_sqlite_import_to_umbrella() {
+	local umbrella_header
+
+	umbrella_header=$(grep -rl "GRDB_VersionNumber" "${grdb_dir}" | grep "/GRDB.h$" | head -n 1 || true)
+	if [[ -z "${umbrella_header}" ]]; then
+		echo "Failed to locate GRDB umbrella header to expose sqlite3.h"
+		exit 1
+	fi
+
+	if grep -q "#import <GRDB/sqlite3.h>" "${umbrella_header}"; then
+		echo "GRDB umbrella header already exposes sqlite3.h ✅"
+		return
+	fi
+
+	printf '%s' "Adding sqlite3.h to GRDB umbrella header ... "
+	if grep -q "#import <GRDB/GRDB-Bridging.h>" "${umbrella_header}"; then
+		python - "$umbrella_header" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+content = path.read_text()
+marker = "#import <GRDB/GRDB-Bridging.h>"
+snippet = "#import <GRDB/sqlite3.h>\n" + marker
+path.write_text(content.replace(marker, snippet))
+PY
+	else
+		printf '\n#import <GRDB/sqlite3.h>\n' >> "${umbrella_header}"
+	fi
+	echo "✅"
+}
+
 setup_log_formatter() {
 	if command -v xcbeautify &> /dev/null; then
 		log_formatter='xcbeautify'
@@ -328,6 +360,7 @@ main() {
 	build_sqlcipher
 	patch_grdb
 	build_and_test_release
+	add_sqlite_import_to_umbrella
 	build_xcframework
 	update_swift_package
 	make_release
