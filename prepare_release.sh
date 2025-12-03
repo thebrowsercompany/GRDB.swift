@@ -356,11 +356,11 @@ make_release() {
 	git push origin main
 	git push origin "$new_version"
 
-	gh release create "$new_version" --generate-notes "${xcframework_zip}" --repo thebrowsercompany/GRDB_2.swift
+	gh release create "$new_version" --generate-notes "${xcframework_zip}" --repo thebrowsercompany/GRDB.swift
 
 	cat <<- EOF
 
-	🎉 Release is ready at https://github.com/thebrowsercompany/GRDB_2.swift/releases/tag/${new_version}
+	🎉 Release is ready at https://github.com/thebrowsercompany/GRDB.swift/releases/tag/${new_version}
 	EOF
 }
 
